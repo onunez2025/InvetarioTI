@@ -1,0 +1,12 @@
+{
+  "name": "inventario-ti",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": ["apps/frontend", "apps/backend"],
+  "scripts": {
+    "dev:backend": "npm run start:dev --workspace=apps/backend",
+    "dev:frontend": "npm run dev --workspace=apps/frontend",
+    "test:backend": "npm run test --workspace=apps/backend",
+    "test:frontend": "npm run test --workspace=apps/frontend"
+  }
+}
