@@ -47,7 +47,7 @@ export class AuditoriaService {
   async findByEquipo(equipoId: number): Promise<HistorialCambio[]> {
     return this.historialRepo.find({
       where: { equipo: { id: equipoId } },
-      relations: ['usuario'],
+      relations: { usuario: true },
       order: { fecha: 'DESC' },
     });
   }

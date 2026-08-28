@@ -44,10 +44,8 @@ export class EquiposService {
   }
 
   async create(dto: CreateEquipoDto, usuarioId: number): Promise<Equipo> {
-    const equipo = this.equipoRepo.create({
-      ...dto,
-      creadoPor: { id: usuarioId } as any,
-    });
+    const equipo = this.equipoRepo.create();
+    Object.assign(equipo, dto, { creadoPor: { id: usuarioId } });
     return this.equipoRepo.save(equipo);
   }
 
