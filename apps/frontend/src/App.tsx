@@ -2,6 +2,9 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ConfigProvider } from 'antd';
 import esES from 'antd/locale/es_ES';
 import LoginPage from './pages/LoginPage';
+import DashboardPage from './pages/DashboardPage';
+import EquiposPage from './pages/EquiposPage';
+import MainLayout from './layouts/MainLayout';
 import { useAuthStore } from './store/authStore';
 
 function RutaProtegida({ children }: { children: React.ReactNode }) {
@@ -23,16 +26,21 @@ export default function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+
+          {/* Rutas protegidas con layout */}
           <Route
-            path="/dashboard"
             element={
               <RutaProtegida>
-                <div style={{ padding: 24 }}>
-                  <h2>Dashboard — próximamente</h2>
-                </div>
+                <MainLayout />
               </RutaProtegida>
             }
-          />
+          >
+            <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/equipos" element={<EquiposPage />} />
+          </Route>
+
+          {/* Raíz redirige según sesión */}
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </BrowserRouter>
