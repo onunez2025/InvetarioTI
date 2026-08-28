@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import { join } from 'path';
 import { getDatabaseConfig } from './config/database.config';
 import { AuthModule } from './modules/auth/auth.module';
 import { EquiposModule } from './modules/equipos/equipos.module';
@@ -10,6 +12,15 @@ import { IntegracionesModule } from './modules/integraciones/integraciones.modul
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forRoot(getDatabaseConfig()),
+    // Sirve el frontend React desde la carpeta public/
+    // Las rutas /api/** siguen siendo manejadas por NestJS
+    ServeStaticModule.forRoot({
+      rootPath: join(__dirname, '..', 'public'),
+      exclude: ['/api/(.*)'],
+      serveStaticOptions: {
+        fallthrough: true,  // SPA: rutas desconocidas → index.html
+      },
+    }),
     AuthModule,
     EquiposModule,
     IntegracionesModule,
