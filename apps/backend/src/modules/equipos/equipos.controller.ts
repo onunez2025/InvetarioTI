@@ -4,6 +4,7 @@ import {
   ParseIntPipe,
 } from '@nestjs/common';
 import { EquiposService } from './equipos.service';
+import { AuditoriaService } from '../auditoria/auditoria.service';
 import { CreateEquipoDto } from './dto/create-equipo.dto';
 import { UpdateEquipoDto } from './dto/update-equipo.dto';
 import { FiltroEquiposDto } from './dto/filtro-equipos.dto';
@@ -13,7 +14,10 @@ import { RolesGuard, Roles } from '../auth/roles.guard';
 @Controller('api/equipos')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class EquiposController {
-  constructor(private readonly equiposService: EquiposService) {}
+  constructor(
+    private readonly equiposService: EquiposService,
+    private readonly auditoriaService: AuditoriaService,
+  ) {}
 
   @Get()
   findAll(@Query() filtros: FiltroEquiposDto) {
@@ -24,6 +28,12 @@ export class EquiposController {
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.equiposService.findOne(id);
+  }
+
+  @Get(':id/historial')
+  @Roles('ADMIN', 'GERENTE', 'TECNICO')
+  historial(@Param('id', ParseIntPipe) id: number) {
+    return this.auditoriaService.findByEquipo(id);
   }
 
   @Post()

@@ -3,6 +3,7 @@ import { EquiposService } from './equipos.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Equipo } from './entities/equipo.entity';
 import { NotFoundException } from '@nestjs/common';
+import { AuditoriaService } from '../auditoria/auditoria.service';
 
 const mockEquipo: Partial<Equipo> = {
   id: 1,
@@ -20,12 +21,16 @@ describe('EquiposService', () => {
     create: jest.fn(),
     save: jest.fn(),
   };
+  const mockAuditoria = {
+    registrarCambios: jest.fn().mockResolvedValue(undefined),
+  };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         EquiposService,
         { provide: getRepositoryToken(Equipo), useValue: mockRepo },
+        { provide: AuditoriaService, useValue: mockAuditoria },
       ],
     }).compile();
     service = module.get<EquiposService>(EquiposService);
@@ -49,6 +54,15 @@ describe('EquiposService', () => {
     mockRepo.save.mockResolvedValue(mockEquipo);
     const result = await service.create({ empresa: 'MT INDUSTRIAL', nombre: 'CORE1' } as any, 1);
     expect(result).toEqual(mockEquipo);
+  });
+
+  it('update debe registrar cambios en auditoría', async () => {
+    const equipoModificado = { ...mockEquipo, nombre: 'CORE1-NUEVO' };
+    mockRepo.findOne.mockResolvedValue({ ...mockEquipo });
+    mockRepo.save.mockResolvedValue(equipoModificado);
+    mockAuditoria.registrarCambios.mockResolvedValue(undefined);
+    await service.update(1, { nombre: 'CORE1-NUEVO' } as any, 1);
+    expect(mockAuditoria.registrarCambios).toHaveBeenCalledTimes(1);
   });
 
   it('remove debe cambiar estado a BAJA', async () => {

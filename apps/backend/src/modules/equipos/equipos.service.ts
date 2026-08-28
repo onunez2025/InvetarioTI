@@ -5,15 +5,21 @@ import { Equipo } from './entities/equipo.entity';
 import { CreateEquipoDto } from './dto/create-equipo.dto';
 import { UpdateEquipoDto } from './dto/update-equipo.dto';
 import { FiltroEquiposDto } from './dto/filtro-equipos.dto';
+import { AuditoriaService } from '../auditoria/auditoria.service';
 
 @Injectable()
 export class EquiposService {
   constructor(
     @InjectRepository(Equipo)
     private readonly equipoRepo: Repository<Equipo>,
+    private readonly auditoriaService: AuditoriaService,
   ) {}
 
-  async findAll(filtros: Omit<FiltroEquiposDto, 'page' | 'limit'>, page = 1, limit = 50): Promise<{ data: Equipo[]; total: number }> {
+  async findAll(
+    filtros: Omit<FiltroEquiposDto, 'page' | 'limit'>,
+    page = 1,
+    limit = 50,
+  ): Promise<{ data: Equipo[]; total: number }> {
     const where: FindOptionsWhere<Equipo> = {};
     if (filtros.tipo) where.tipo = filtros.tipo;
     if (filtros.departamento) where.departamento = filtros.departamento;
@@ -46,9 +52,12 @@ export class EquiposService {
   }
 
   async update(id: number, dto: UpdateEquipoDto, usuarioId: number): Promise<Equipo> {
-    const equipo = await this.findOne(id);
-    Object.assign(equipo, dto);
-    return this.equipoRepo.save(equipo);
+    const equipoAnterior = await this.findOne(id);
+    const copiaAnterior = { ...equipoAnterior };
+    Object.assign(equipoAnterior, dto);
+    const equipoActualizado = await this.equipoRepo.save(equipoAnterior);
+    await this.auditoriaService.registrarCambios(id, copiaAnterior as Equipo, equipoActualizado, usuarioId);
+    return equipoActualizado;
   }
 
   async remove(id: number): Promise<void> {
