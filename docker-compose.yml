@@ -1,9 +1,35 @@
 version: '3.9'
 
-# Servicios locales de infraestructura.
+# Para desarrollo local: levanta Redis + RabbitMQ
+# Para producción (Easypanel): usa los servicios backend y frontend
 # La base de datos vive en SQL Azure — no se incluye aquí.
 
 services:
+  backend:
+    build:
+      context: ./apps/backend
+      dockerfile: Dockerfile
+    container_name: inventario_backend
+    ports:
+      - '3000:3000'
+    env_file:
+      - ./apps/backend/.env
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./apps/frontend
+      dockerfile: Dockerfile
+    container_name: inventario_frontend
+    ports:
+      - '80:80'
+    depends_on:
+      - backend
+    restart: unless-stopped
+
   redis:
     image: redis:7-alpine
     container_name: inventario_redis
@@ -22,8 +48,8 @@ services:
     image: rabbitmq:3-management-alpine
     container_name: inventario_rabbitmq
     ports:
-      - '5672:5672'   # AMQP
-      - '15672:15672' # Management UI  →  http://localhost:15672  (guest/guest)
+      - '5672:5672'
+      - '15672:15672'
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
     healthcheck:
