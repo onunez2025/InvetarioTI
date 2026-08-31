@@ -149,6 +149,19 @@ function ModalEditar({
           </div>
         )}
 
+        {tipo === 'gerencia' && (
+          <div>
+            <label style={{ fontSize: 12, color: '#64748b', display: 'block', marginBottom: 4 }}>
+              Descripción / Nombre largo (opcional)
+            </label>
+            <Input
+              value={extra}
+              onChange={e => setExtra(e.target.value)}
+              placeholder="Ej: Gerencia Administrativa y Financiera"
+            />
+          </div>
+        )}
+
       </div>
     </Modal>
   );
@@ -224,14 +237,23 @@ function CatalogPanel({ tipo }: { tipo: string }) {
       render: (_: unknown, record: Catalogo) => {
         if (!record.parentId) return <span style={{ color: '#94a3b8' }}>—</span>;
         const parent = getById(record.parentId);
-        return parent ? (
-          <Tag color="geekblue" style={{ fontWeight: 500 }}>{parent.nombre}</Tag>
-        ) : (
-          <span style={{ color: '#94a3b8', fontSize: 11 }}>ID: {record.parentId}</span>
+        if (!parent) return <span style={{ color: '#94a3b8', fontSize: 11 }}>—</span>;
+        return (
+          <Tag color="geekblue" style={{ fontWeight: 500 }}>
+            {parent.nombre}{parent.extra ? ` — ${parent.extra}` : ''}
+          </Tag>
         );
       },
     }] : []),
-    // Código / RUC
+    // Descripción para gerencias
+    ...(tipo === 'gerencia' ? [{
+      title: 'Descripción',
+      dataIndex: 'extra',
+      render: (v: string) => v
+        ? <span style={{ color: '#475569', fontSize: 12 }}>{v}</span>
+        : <span style={{ color: '#94a3b8', fontSize: 11 }}>Sin descripción</span>,
+    }] : []),
+    // Código / RUC para ceco/empresa
     ...(tipo === 'ceco' || tipo === 'empresa' ? [{
       title: tipo === 'ceco' ? 'Código' : 'RUC',
       dataIndex: 'extra',

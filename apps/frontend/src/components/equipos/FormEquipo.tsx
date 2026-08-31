@@ -125,19 +125,22 @@ export default function FormEquipo({ abierto, equipo, onCerrar, onGuardado }: Pr
     }
   };
 
-  /** Select con búsqueda y opciones de catálogo */
+  /** Select con búsqueda y opciones de catálogo.
+   *  Si el item tiene `extra` (ej. gerencia con descripción) lo muestra como "CÓDIGO — Descripción"
+   *  pero guarda solo el `nombre` como valor del campo. */
   function CatSelect({
     options,
     placeholder,
     hint,
   }: {
-    options: Array<{ id: number; nombre: string }> | string[];
+    options: Array<{ id: number; nombre: string; extra?: string }> | string[];
     placeholder?: string;
-    hint?: string;      // texto de ayuda en el placeholder cuando hay filtro activo
+    hint?: string;
   }) {
-    const items = Array.isArray(options) && typeof options[0] === 'string'
-      ? (options as string[]).map(n => ({ id: n, nombre: n }))
-      : options as Array<{ id: number; nombre: string }>;
+    const items: Array<{ id: number | string; nombre: string; extra?: string }> =
+      Array.isArray(options) && typeof options[0] === 'string'
+        ? (options as string[]).map(n => ({ id: n, nombre: n }))
+        : options as Array<{ id: number; nombre: string; extra?: string }>;
 
     return (
       <Select
@@ -145,11 +148,25 @@ export default function FormEquipo({ abierto, equipo, onCerrar, onGuardado }: Pr
         allowClear
         placeholder={!cargado ? 'Cargando...' : (hint ?? placeholder ?? 'Seleccionar')}
         loading={!cargado}
-        filterOption={(input, opt) =>
-          String(opt?.value ?? '').toLowerCase().includes(input.toLowerCase())
-        }
+        filterOption={(input, opt) => {
+          const label = String(opt?.label ?? opt?.value ?? '').toLowerCase();
+          return label.includes(input.toLowerCase());
+        }}
+        optionFilterProp="label"
       >
-        {items.map(o => <Option key={o.nombre} value={o.nombre}>{o.nombre}</Option>)}
+        {items.map(o => {
+          const label = o.extra ? `${o.nombre} — ${o.extra}` : o.nombre;
+          return (
+            <Option key={o.nombre} value={o.nombre} label={label}>
+              <span style={{ fontWeight: 600 }}>{o.nombre}</span>
+              {o.extra && (
+                <span style={{ color: '#64748b', fontSize: 11, marginLeft: 6 }}>
+                  {o.extra}
+                </span>
+              )}
+            </Option>
+          );
+        })}
       </Select>
     );
   }
