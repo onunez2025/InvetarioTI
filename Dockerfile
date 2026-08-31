@@ -23,7 +23,10 @@ RUN npm install --legacy-peer-deps
 
 COPY apps/backend/ ./
 RUN npm run build
-# Resultado en /app/backend/dist
+
+# Elimina devDependencies para reducir el tamaño de la imagen final
+RUN npm prune --production
+# Resultado en /app/backend/dist y /app/backend/node_modules (solo producción)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -34,9 +37,8 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 
-# Dependencias de producción del backend
-COPY apps/backend/package*.json ./
-RUN npm install --omit=dev --legacy-peer-deps && npm cache clean --force
+# Copia node_modules ya instaladas y podadas desde el builder (mismas versiones exactas)
+COPY --from=backend-builder /app/backend/node_modules ./node_modules
 
 # Código compilado del backend
 COPY --from=backend-builder /app/backend/dist ./dist
