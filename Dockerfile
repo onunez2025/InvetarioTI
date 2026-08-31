@@ -25,7 +25,7 @@ COPY apps/backend/ ./
 RUN npm run build
 
 # Elimina devDependencies para reducir el tamaño de la imagen final
-RUN npm prune --production
+RUN npm prune --omit=dev --legacy-peer-deps
 # Resultado en /app/backend/dist y /app/backend/node_modules (solo producción)
 
 
