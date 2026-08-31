@@ -18,12 +18,13 @@ async function bootstrap() {
     // Archivos estáticos (JS, CSS, imágenes, etc.)
     app.useStaticAssets(publicPath);
 
-    // SPA fallback: cualquier ruta que no sea /api → index.html
-    // path-to-regexp v8 requiere wildcard con nombre: /{*path}
+    // SPA fallback: app.use() sin patrón de ruta no usa path-to-regexp
     const httpAdapter = app.getHttpAdapter();
     const expressInstance = httpAdapter.getInstance();
-    expressInstance.get('/{*path}', (req: any, res: any, next: any) => {
+    expressInstance.use((req: any, res: any, next: any) => {
       if (req.path.startsWith('/api')) return next();
+      // Pasar archivos con extensión al siguiente (ya servidos por useStaticAssets)
+      if (req.path.includes('.')) return next();
       res.sendFile(join(publicPath, 'index.html'));
     });
   }
