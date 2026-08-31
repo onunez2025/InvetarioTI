@@ -19,7 +19,7 @@ FROM node:20-alpine AS backend-builder
 WORKDIR /app/backend
 
 COPY apps/backend/package*.json ./
-RUN npm ci --legacy-peer-deps
+RUN npm install --legacy-peer-deps
 
 COPY apps/backend/ ./
 RUN npm run build
@@ -36,7 +36,7 @@ ENV NODE_ENV=production
 
 # Dependencias de producción del backend
 COPY apps/backend/package*.json ./
-RUN npm ci --only=production --legacy-peer-deps && npm cache clean --force
+RUN npm install --omit=dev --legacy-peer-deps && npm cache clean --force
 
 # Código compilado del backend
 COPY --from=backend-builder /app/backend/dist ./dist
