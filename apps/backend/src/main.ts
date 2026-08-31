@@ -2,9 +2,8 @@ import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
-import { join, existsSync } from 'path';
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const path = require('path');
+import { join } from 'path';
+import { existsSync } from 'fs';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
@@ -25,7 +24,7 @@ async function bootstrap() {
     const expressInstance = httpAdapter.getInstance();
     expressInstance.get('/{*path}', (req: any, res: any, next: any) => {
       if (req.path.startsWith('/api')) return next();
-      res.sendFile(path.join(publicPath, 'index.html'));
+      res.sendFile(join(publicPath, 'index.html'));
     });
   }
 
