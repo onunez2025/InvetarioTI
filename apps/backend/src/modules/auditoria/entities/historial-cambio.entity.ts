@@ -2,7 +2,7 @@ import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, ManyToOne, Jo
 import { Equipo } from '../../equipos/entities/equipo.entity';
 import { Usuario } from '../../usuarios/entities/usuario.entity';
 
-@Entity({ name: 'historial_cambios', schema: 'INV_ZYL' })
+@Entity({ name: 'historial_cambios', schema: 'inventario_ti' })
 export class HistorialCambio {
   @PrimaryGeneratedColumn()
   id: number;

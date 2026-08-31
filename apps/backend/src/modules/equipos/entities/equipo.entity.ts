@@ -6,7 +6,7 @@ import { Usuario } from '../../usuarios/entities/usuario.entity';
 
 export type EstadoEquipo = 'ACTIVO' | 'BAJA' | 'MANTENIMIENTO';
 
-@Entity({ name: 'equipos', schema: 'INV_ZYL' })
+@Entity({ name: 'equipos', schema: 'inventario_ti' })
 export class Equipo {
   @PrimaryGeneratedColumn()
   id: number;

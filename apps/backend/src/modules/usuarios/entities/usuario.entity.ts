@@ -2,7 +2,7 @@ import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn } from 'typeor
 
 export type RolUsuario = 'ADMIN' | 'GERENTE' | 'TECNICO' | 'VISUALIZADOR';
 
-@Entity({ name: 'usuarios', schema: 'INV_ZYL' })
+@Entity({ name: 'usuarios', schema: 'inventario_ti' })
 export class Usuario {
   @PrimaryGeneratedColumn()
   id: number;

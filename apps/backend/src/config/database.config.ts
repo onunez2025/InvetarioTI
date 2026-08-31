@@ -8,7 +8,7 @@ export function getDatabaseConfig(): TypeOrmModuleOptions {
     database: process.env.DB_NAME,
     username: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
-    schema: process.env.DB_SCHEMA ?? 'INV_ZYL',
+    schema: process.env.DB_SCHEMA ?? 'inventario_ti',
     options: {
       encrypt: true,
       trustServerCertificate: false,
