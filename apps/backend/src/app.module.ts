@@ -16,7 +16,8 @@ import { IntegracionesModule } from './modules/integraciones/integraciones.modul
     // Las rutas /api/** siguen siendo manejadas por NestJS
     ServeStaticModule.forRoot({
       rootPath: join(__dirname, '..', 'public'),
-      exclude: ['/api/(.*)'],
+      // path-to-regexp v8 requiere wildcards con nombre: {*path}
+      exclude: ['/api/{*path}'],
       serveStaticOptions: {
         fallthrough: true,  // SPA: rutas desconocidas → index.html
       },
