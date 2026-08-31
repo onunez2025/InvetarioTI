@@ -6,15 +6,20 @@ import { getDatabaseConfig } from './config/database.config';
 import { AuthModule } from './modules/auth/auth.module';
 import { EquiposModule } from './modules/equipos/equipos.module';
 import { IntegracionesModule } from './modules/integraciones/integraciones.module';
+import { CatalogosModule } from './modules/catalogos/catalogos.module';
+import { UsuariosModule } from './modules/usuarios/usuarios.module';
+import { HistorialModule } from './modules/historial/historial.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forRoot(getDatabaseConfig()),
-    // El frontend se sirve desde main.ts con useStaticAssets + catch-all SPA
     AuthModule,
     EquiposModule,
     IntegracionesModule,
+    CatalogosModule,
+    UsuariosModule,
+    HistorialModule,
   ],
   controllers: [AppController],
 })
