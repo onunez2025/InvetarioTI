@@ -164,6 +164,9 @@ function CatalogPanel({ tipo }: { tipo: string }) {
   const { invalidar, cargar, getById } = useCatalogosStore();
   const rol = useAuthStore(s => s.usuario?.rol);
 
+  // Asegurar que el store global esté cargado para resolver nombres de padres
+  useEffect(() => { cargar(); }, [cargar]);
+
   const cargarPanel = useCallback(async () => {
     setLoading(true);
     try {
