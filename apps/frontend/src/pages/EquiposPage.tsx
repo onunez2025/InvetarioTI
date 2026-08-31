@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react';
-import { Button, Typography, Space, message, Modal, Upload, Divider } from 'antd';
-import { PlusOutlined, UploadOutlined } from '@ant-design/icons';
+import { Upload, Modal, message } from 'antd';
+import {
+  PlusOutlined,
+  UploadOutlined,
+  LaptopOutlined,
+} from '@ant-design/icons';
 import { useEquiposStore } from '../store/equiposStore';
 import { useAuthStore } from '../store/authStore';
 import { equiposService } from '../services/equipos.service';
@@ -8,13 +12,11 @@ import TablaEquipos from '../components/equipos/TablaEquipos';
 import FormEquipo from '../components/equipos/FormEquipo';
 import type { Equipo } from '../types/equipo.types';
 
-const { Title } = Typography;
-
 export default function EquiposPage() {
   const { equipos, total, cargando, filtros, setFiltros, cargar } = useEquiposStore();
   const token = useAuthStore((s) => s.token);
 
-  // Derivar rol del JWT (payload.rol)
+  /* Derive role from JWT */
   const rolUsuario = (() => {
     if (!token) return 'VISUALIZADOR';
     try {
@@ -24,26 +26,26 @@ export default function EquiposPage() {
     }
   })();
 
-  const [formAbierto, setFormAbierto] = useState(false);
+  const [formAbierto, setFormAbierto]   = useState(false);
   const [equipoEditar, setEquipoEditar] = useState<Equipo | null>(null);
-  const [importando, setImportando] = useState(false);
+  const [importando, setImportando]     = useState(false);
 
   useEffect(() => { cargar(); }, []);
 
-  const abrirCrear = () => { setEquipoEditar(null); setFormAbierto(true); };
+  const abrirCrear  = () => { setEquipoEditar(null); setFormAbierto(true); };
   const abrirEditar = (equipo: Equipo) => { setEquipoEditar(equipo); setFormAbierto(true); };
-  const cerrarForm = () => setFormAbierto(false);
+  const cerrarForm  = () => setFormAbierto(false);
 
   const darDeBaja = (id: number) => {
     Modal.confirm({
       title: '¿Dar de baja este equipo?',
       content: 'El equipo cambiará a estado BAJA. Esta acción puede revertirse editándolo.',
-      okText: 'Confirmar',
+      okText: 'Confirmar baja',
       okButtonProps: { danger: true },
       cancelText: 'Cancelar',
       onOk: async () => {
         await equiposService.eliminar(id);
-        message.success('Equipo dado de baja');
+        message.success('Equipo dado de baja correctamente');
         cargar();
       },
     });
@@ -58,8 +60,10 @@ export default function EquiposPage() {
         Modal.warning({
           title: 'Algunas filas no se importaron',
           content: (
-            <ul style={{ maxHeight: 200, overflow: 'auto' }}>
-              {resultado.detalles.map((d, i) => <li key={i}>{d}</li>)}
+            <ul style={{ maxHeight: 200, overflowY: 'auto', paddingLeft: 18 }}>
+              {resultado.detalles.map((d: string, i: number) => (
+                <li key={i} style={{ marginBottom: 4, fontSize: 13 }}>{d}</li>
+              ))}
             </ul>
           ),
         });
@@ -70,35 +74,76 @@ export default function EquiposPage() {
     } finally {
       setImportando(false);
     }
-    return false; // evitar upload automático de antd
+    return false; // prevent antd auto-upload
   };
 
+  const puedeImportar = ['ADMIN'].includes(rolUsuario);
+  const puedeCrear    = ['ADMIN', 'GERENTE', 'TECNICO'].includes(rolUsuario);
+
   return (
-    <div>
-      <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }}>
-        <Title level={4} style={{ margin: 0 }}>Equipos</Title>
-        <Space>
-          {['ADMIN'].includes(rolUsuario) && (
+    <div className="anim-fadeIn">
+      {/* ---- Page header ---- */}
+      <div className="page-header">
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 2 }}>
+            <div style={{
+              width: 36, height: 36,
+              background: '#dbeafe',
+              borderRadius: 10,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: '#1d4ed8',
+              fontSize: 18,
+            }}>
+              <LaptopOutlined aria-hidden="true" />
+            </div>
+            <div>
+              <div className="page-title">Equipos</div>
+              <div className="page-subtitle">
+                {cargando ? 'Cargando...' : `${total.toLocaleString('es-PE')} equipo${total !== 1 ? 's' : ''} registrado${total !== 1 ? 's' : ''}`}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Action buttons */}
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          {puedeImportar && (
             <Upload
               accept=".xlsx,.xls"
               showUploadList={false}
               beforeUpload={importarExcel}
             >
-              <Button icon={<UploadOutlined />} loading={importando}>
-                Importar Excel
-              </Button>
+              <button
+                className="it-btn"
+                disabled={importando}
+                style={{ cursor: importando ? 'not-allowed' : 'pointer', opacity: importando ? 0.7 : 1 }}
+              >
+                {importando ? (
+                  <div style={{
+                    width: 14, height: 14,
+                    border: '2px solid #e2e8f0',
+                    borderTop: '2px solid #64748b',
+                    borderRadius: '50%',
+                    animation: 'spin 0.75s linear infinite',
+                  }} />
+                ) : (
+                  <UploadOutlined aria-hidden="true" />
+                )}
+                {importando ? 'Importando...' : 'Importar Excel'}
+              </button>
             </Upload>
           )}
-          {['ADMIN', 'GERENTE', 'TECNICO'].includes(rolUsuario) && (
-            <Button type="primary" icon={<PlusOutlined />} onClick={abrirCrear}>
+
+          {puedeCrear && (
+            <button className="it-btn it-btn-primary" onClick={abrirCrear}>
+              <PlusOutlined aria-hidden="true" />
               Nuevo equipo
-            </Button>
+            </button>
           )}
-        </Space>
-      </Space>
+        </div>
+      </div>
 
-      <Divider style={{ margin: '0 0 16px' }} />
-
+      {/* ---- Table ---- */}
       <TablaEquipos
         equipos={equipos}
         total={total}
@@ -111,6 +156,7 @@ export default function EquiposPage() {
         onRecargar={cargar}
       />
 
+      {/* ---- Form modal ---- */}
       <FormEquipo
         abierto={formAbierto}
         equipo={equipoEditar}

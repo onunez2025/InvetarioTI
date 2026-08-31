@@ -18,8 +18,34 @@ export default function App() {
       locale={esES}
       theme={{
         token: {
-          colorPrimary: '#1677ff',
-          borderRadius: 6,
+          colorPrimary: '#2563eb',
+          colorLink: '#2563eb',
+          colorLinkHover: '#1d4ed8',
+          borderRadius: 8,
+          colorBgLayout: '#f8fafc',
+          colorBgContainer: '#ffffff',
+          colorBorder: '#e2e8f0',
+          colorBorderSecondary: '#f1f5f9',
+          fontFamily:
+            "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+          fontSize: 14,
+        },
+        components: {
+          Table: {
+            headerBg: '#f8fafc',
+            headerColor: '#64748b',
+            rowHoverBg: '#f8fafc',
+            borderColor: '#e2e8f0',
+            fontSize: 13,
+          },
+          Button: {
+            borderRadius: 8,
+            fontWeight: 500,
+          },
+          Input: { borderRadius: 8 },
+          Select: { borderRadius: 8 },
+          Card: { borderRadius: 12 },
+          Drawer: { colorBgElevated: '#0f1629' },
         },
       }}
     >
@@ -27,7 +53,6 @@ export default function App() {
         <Routes>
           <Route path="/login" element={<LoginPage />} />
 
-          {/* Rutas protegidas con layout */}
           <Route
             element={
               <RutaProtegida>
@@ -39,7 +64,6 @@ export default function App() {
             <Route path="/equipos" element={<EquiposPage />} />
           </Route>
 
-          {/* Raíz redirige según sesión */}
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
