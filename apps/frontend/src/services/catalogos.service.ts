@@ -33,10 +33,10 @@ export const catalogosService = {
   /** Todos (incluyendo inactivos) de un tipo — para la página Configuración */
   findAllByTipo: (tipo: string): Promise<Catalogo[]> => req('GET', `/admin/${tipo}`),
 
-  create: (tipo: string, nombre: string, extra?: string): Promise<Catalogo> =>
-    req('POST', '', { tipo, nombre, extra }),
+  create: (tipo: string, nombre: string, extra?: string, parentId?: number): Promise<Catalogo> =>
+    req('POST', '', { tipo, nombre, extra, parentId }),
 
-  update: (id: number, data: { nombre?: string; extra?: string; activo?: boolean }): Promise<Catalogo> =>
+  update: (id: number, data: { nombre?: string; extra?: string; activo?: boolean; parentId?: number }): Promise<Catalogo> =>
     req('PUT', `/${id}`, data),
 
   remove: (id: number): Promise<void> =>

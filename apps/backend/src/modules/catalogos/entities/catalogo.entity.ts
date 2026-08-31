@@ -12,9 +12,16 @@ export class Catalogo {
   @Column({ length: 200 })
   nombre: string;
 
-  /** Campo extra libre (ej: color para estados, RUC para empresas, código para CECOs) */
+  /** Campo extra libre (ej: RUC para empresas, código para CECOs) */
   @Column({ length: 200, nullable: true })
   extra: string;
+
+  /**
+   * Jerarquía: departamento.parentId → gerencia.id
+   *            ubicacion.parentId  → departamento.id
+   */
+  @Column({ name: 'parent_id', nullable: true })
+  parentId: number;
 
   @Column({ default: true })
   activo: boolean;

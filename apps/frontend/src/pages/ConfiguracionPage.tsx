@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Table, Tabs, Input, Switch, Modal, message, Popconfirm, Tag } from 'antd';
+import { Table, Tabs, Input, Switch, Modal, Select, message, Popconfirm, Tag } from 'antd';
 import {
   PlusOutlined, EditOutlined, DeleteOutlined, SettingOutlined, CheckOutlined, CloseOutlined,
+  ApartmentOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import type { Catalogo } from '../types/catalogo.types';
@@ -10,13 +11,21 @@ import { catalogosService } from '../services/catalogos.service';
 import { useCatalogosStore } from '../store/catalogosStore';
 import { useAuthStore } from '../store/authStore';
 
-/* ---- Inline edit modal ---- */
+const { Option } = Select;
+
+/** Tipo padre de cada tipo jerárquico */
+const PARENT_TIPO: Record<string, string> = {
+  departamento: 'gerencia',
+  ubicacion: 'departamento',
+};
+const PARENT_LABEL: Record<string, string> = {
+  departamento: 'Gerencia padre',
+  ubicacion: 'Departamento padre',
+};
+
+/* ---- Modal crear / editar ---- */
 function ModalEditar({
-  open,
-  item,
-  tipo,
-  onClose,
-  onSaved,
+  open, item, tipo, onClose, onSaved,
 }: {
   open: boolean;
   item: Catalogo | null;
@@ -26,12 +35,19 @@ function ModalEditar({
 }) {
   const [nombre, setNombre] = useState('');
   const [extra, setExtra] = useState('');
+  const [parentId, setParentId] = useState<number | undefined>();
   const [loading, setLoading] = useState(false);
+
+  // Opciones del catálogo padre (gerencias para departamento, deptos para ubicacion)
+  const { getItems } = useCatalogosStore();
+  const parentTipo = PARENT_TIPO[tipo];
+  const parentOptions = parentTipo ? getItems(parentTipo) : [];
 
   useEffect(() => {
     if (open) {
       setNombre(item?.nombre ?? '');
       setExtra(item?.extra ?? '');
+      setParentId(item?.parentId ?? undefined);
     }
   }, [open, item]);
 
@@ -40,10 +56,14 @@ function ModalEditar({
     setLoading(true);
     try {
       if (item) {
-        await catalogosService.update(item.id, { nombre: nombre.trim(), extra: extra.trim() || undefined });
+        await catalogosService.update(item.id, {
+          nombre: nombre.trim(),
+          extra: extra.trim() || undefined,
+          parentId,
+        });
         message.success('Actualizado');
       } else {
-        await catalogosService.create(tipo, nombre.trim(), extra.trim() || undefined);
+        await catalogosService.create(tipo, nombre.trim(), extra.trim() || undefined, parentId);
         message.success('Creado');
       }
       onSaved();
@@ -66,9 +86,40 @@ function ModalEditar({
       okText="Guardar"
       cancelText="Cancelar"
       confirmLoading={loading}
-      width={420}
+      width={440}
+      destroyOnClose
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12, paddingTop: 8 }}>
+
+        {/* Jerarquía: selector padre */}
+        {parentTipo && (
+          <div>
+            <label style={{ fontSize: 12, color: '#64748b', display: 'block', marginBottom: 4 }}>
+              {PARENT_LABEL[tipo]} (opcional)
+            </label>
+            <Select
+              showSearch
+              allowClear
+              value={parentId}
+              onChange={v => setParentId(v)}
+              placeholder={`Seleccionar ${PARENT_LABEL[tipo].toLowerCase()}`}
+              style={{ width: '100%' }}
+              filterOption={(inp, opt) =>
+                String(opt?.children ?? '').toLowerCase().includes(inp.toLowerCase())
+              }
+            >
+              {parentOptions.map(p => (
+                <Option key={p.id} value={p.id}>{p.nombre}</Option>
+              ))}
+            </Select>
+            {parentOptions.length === 0 && (
+              <div style={{ fontSize: 11, color: '#f59e0b', marginTop: 4 }}>
+                ⚠ Sin {parentTipo}s activos para seleccionar
+              </div>
+            )}
+          </div>
+        )}
+
         <div>
           <label style={{ fontSize: 12, color: '#64748b', display: 'block', marginBottom: 4 }}>Nombre *</label>
           <Input
@@ -79,30 +130,25 @@ function ModalEditar({
             onPressEnter={guardar}
           />
         </div>
-        {(tipo === 'ceco') && (
+
+        {tipo === 'ceco' && (
           <div>
             <label style={{ fontSize: 12, color: '#64748b', display: 'block', marginBottom: 4 }}>
               Código CECO (opcional)
             </label>
-            <Input
-              value={extra}
-              onChange={e => setExtra(e.target.value)}
-              placeholder="Ej: CC-001"
-            />
+            <Input value={extra} onChange={e => setExtra(e.target.value)} placeholder="Ej: CC-001" />
           </div>
         )}
+
         {tipo === 'empresa' && (
           <div>
             <label style={{ fontSize: 12, color: '#64748b', display: 'block', marginBottom: 4 }}>
               RUC (opcional)
             </label>
-            <Input
-              value={extra}
-              onChange={e => setExtra(e.target.value)}
-              placeholder="Ej: 20512345678"
-            />
+            <Input value={extra} onChange={e => setExtra(e.target.value)} placeholder="Ej: 20512345678" />
           </div>
         )}
+
       </div>
     </Modal>
   );
@@ -115,10 +161,10 @@ function CatalogPanel({ tipo }: { tipo: string }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [editItem, setEditItem] = useState<Catalogo | null>(null);
   const [busqueda, setBusqueda] = useState('');
-  const invalidar = useCatalogosStore(s => s.invalidar);
+  const { invalidar, cargar, getById } = useCatalogosStore();
   const rol = useAuthStore(s => s.usuario?.rol);
 
-  const cargar = useCallback(async () => {
+  const cargarPanel = useCallback(async () => {
     setLoading(true);
     try {
       const data = await catalogosService.findAllByTipo(tipo);
@@ -130,13 +176,13 @@ function CatalogPanel({ tipo }: { tipo: string }) {
     }
   }, [tipo]);
 
-  useEffect(() => { cargar(); }, [cargar]);
+  useEffect(() => { cargarPanel(); }, [cargarPanel]);
 
   const toggleActivo = async (item: Catalogo) => {
     try {
       await catalogosService.update(item.id, { activo: !item.activo });
-      await cargar();
-      invalidar();
+      await cargarPanel();
+      invalidar(); await cargar();
       message.success(item.activo ? 'Desactivado' : 'Activado');
     } catch (e: any) {
       message.error(e.message);
@@ -146,8 +192,8 @@ function CatalogPanel({ tipo }: { tipo: string }) {
   const eliminar = async (id: number) => {
     try {
       await catalogosService.remove(id);
-      await cargar();
-      invalidar();
+      await cargarPanel();
+      invalidar(); await cargar();
       message.success('Eliminado');
     } catch (e: any) {
       message.error(e.message ?? 'No se pudo eliminar');
@@ -155,6 +201,7 @@ function CatalogPanel({ tipo }: { tipo: string }) {
   };
 
   const isAdmin = rol === 'ADMIN';
+  const parentTipo = PARENT_TIPO[tipo];
 
   const filtrados = items.filter(i =>
     i.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
@@ -167,6 +214,21 @@ function CatalogPanel({ tipo }: { tipo: string }) {
       dataIndex: 'nombre',
       render: (v: string) => <span style={{ fontWeight: 600 }}>{v}</span>,
     },
+    // Columna padre (solo para departamento y ubicacion)
+    ...(parentTipo ? [{
+      title: PARENT_LABEL[tipo],
+      key: 'parent',
+      render: (_: unknown, record: Catalogo) => {
+        if (!record.parentId) return <span style={{ color: '#94a3b8' }}>—</span>;
+        const parent = getById(record.parentId);
+        return parent ? (
+          <Tag color="geekblue" style={{ fontWeight: 500 }}>{parent.nombre}</Tag>
+        ) : (
+          <span style={{ color: '#94a3b8', fontSize: 11 }}>ID: {record.parentId}</span>
+        );
+      },
+    }] : []),
+    // Código / RUC
     ...(tipo === 'ceco' || tipo === 'empresa' ? [{
       title: tipo === 'ceco' ? 'Código' : 'RUC',
       dataIndex: 'extra',
@@ -193,11 +255,8 @@ function CatalogPanel({ tipo }: { tipo: string }) {
       width: 90,
       render: (_: unknown, record: Catalogo) => (
         <div style={{ display: 'flex', gap: 8 }}>
-          <button
-            className="it-btn"
-            style={{ padding: '4px 8px', fontSize: 12 }}
-            onClick={() => { setEditItem(record); setModalOpen(true); }}
-          >
+          <button className="it-btn" style={{ padding: '4px 8px', fontSize: 12 }}
+            onClick={() => { setEditItem(record); setModalOpen(true); }}>
             <EditOutlined />
           </button>
           <Popconfirm
@@ -219,6 +278,21 @@ function CatalogPanel({ tipo }: { tipo: string }) {
 
   return (
     <div>
+      {/* Info jerarquía */}
+      {parentTipo && (
+        <div style={{
+          background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8,
+          padding: '8px 12px', marginBottom: 12, fontSize: 12, color: '#166534',
+          display: 'flex', alignItems: 'center', gap: 8,
+        }}>
+          <ApartmentOutlined />
+          <span>
+            {CATALOG_LABELS[tipo]} dependen de {CATALOG_LABELS[parentTipo]}.
+            Asigna la jerarquía al crear o editar para activar los filtros en cascada del formulario de equipos.
+          </span>
+        </div>
+      )}
+
       {/* Toolbar */}
       <div style={{ display: 'flex', gap: 12, marginBottom: 16, alignItems: 'center' }}>
         <Input
@@ -230,10 +304,8 @@ function CatalogPanel({ tipo }: { tipo: string }) {
         />
         <div style={{ flex: 1 }} />
         {isAdmin && (
-          <button
-            className="it-btn it-btn-primary"
-            onClick={() => { setEditItem(null); setModalOpen(true); }}
-          >
+          <button className="it-btn it-btn-primary"
+            onClick={() => { setEditItem(null); setModalOpen(true); }}>
             <PlusOutlined /> Agregar
           </button>
         )}
@@ -255,7 +327,7 @@ function CatalogPanel({ tipo }: { tipo: string }) {
         item={editItem}
         tipo={tipo}
         onClose={() => setModalOpen(false)}
-        onSaved={() => { cargar(); invalidar(); }}
+        onSaved={() => { cargarPanel(); invalidar(); cargar(); }}
       />
     </div>
   );
@@ -270,6 +342,9 @@ export default function ConfiguracionPage() {
     label: (
       <span style={{ fontSize: 13 }}>
         {CATALOG_LABELS[tipo]}
+        {PARENT_TIPO[tipo] && (
+          <ApartmentOutlined style={{ marginLeft: 5, fontSize: 11, color: '#2563eb' }} />
+        )}
       </span>
     ),
     children: <CatalogPanel tipo={tipo} />,
@@ -304,27 +379,22 @@ export default function ConfiguracionPage() {
       <div style={{
         background: 'linear-gradient(135deg, #eff6ff, #dbeafe)',
         border: '1px solid #bfdbfe',
-        borderRadius: 12,
-        padding: '12px 16px',
-        marginBottom: 24,
-        fontSize: 13,
-        color: '#1d4ed8',
-        display: 'flex',
-        alignItems: 'center',
-        gap: 10,
+        borderRadius: 12, padding: '12px 16px', marginBottom: 24,
+        fontSize: 13, color: '#1d4ed8',
+        display: 'flex', alignItems: 'center', gap: 10,
       }}>
         <span style={{ fontSize: 16 }}>💡</span>
         <span>
-          Los valores activos de cada catálogo aparecen como opciones desplegables en el formulario de equipos.
-          Desactívalos para ocultarlos sin eliminarlos.
+          Los valores activos aparecen como opciones en el formulario de equipos.
+          Los catálogos marcados con <ApartmentOutlined style={{ color: '#2563eb' }} /> tienen
+          jerarquía: al asignar gerencia a cada departamento y departamento a cada ubicación,
+          el formulario filtra automáticamente en cascada.
         </span>
       </div>
 
       <div style={{
-        background: '#fff',
-        borderRadius: 14,
-        border: '1px solid #e2e8f0',
-        padding: '0 20px 20px',
+        background: '#fff', borderRadius: 14,
+        border: '1px solid #e2e8f0', padding: '0 20px 20px',
         boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
       }}>
         <Tabs items={tabs} size="small" />

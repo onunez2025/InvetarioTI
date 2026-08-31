@@ -21,12 +21,12 @@ export class CatalogosService {
     }, {});
   }
 
-  /** Solo activos de un tipo — usado por el formulario de equipos */
-  findByTipo(tipo: string): Promise<Catalogo[]> {
-    return this.repo.find({
-      where: { tipo, activo: true },
-      order: { nombre: 'ASC' },
-    });
+  /** Solo activos de un tipo — usado por el formulario de equipos.
+   *  Si se pasa parentId, filtra solo los hijos de ese padre. */
+  findByTipo(tipo: string, parentId?: number): Promise<Catalogo[]> {
+    const where: Record<string, unknown> = { tipo, activo: true };
+    if (parentId !== undefined) where.parentId = parentId;
+    return this.repo.find({ where: where as any, order: { nombre: 'ASC' } });
   }
 
   /** Lista completa de un tipo (incluye inactivos) — usado en Configuración */

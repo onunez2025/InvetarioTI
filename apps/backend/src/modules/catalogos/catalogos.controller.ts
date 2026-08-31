@@ -1,6 +1,6 @@
 import {
   Controller, Get, Post, Put, Delete,
-  Body, Param, UseGuards, ParseIntPipe,
+  Body, Param, Query, UseGuards, ParseIntPipe,
 } from '@nestjs/common';
 import { CatalogosService } from './catalogos.service';
 import { CreateCatalogoDto, UpdateCatalogoDto } from './dto/catalogo.dto';
@@ -18,10 +18,14 @@ export class CatalogosController {
     return this.service.findAll();
   }
 
-  /** GET /api/catalogos/tipo/:tipo → activos de un tipo */
+  /** GET /api/catalogos/tipo/:tipo → activos de un tipo; ?parentId= para filtrar hijos */
   @Get('tipo/:tipo')
-  findByTipo(@Param('tipo') tipo: string) {
-    return this.service.findByTipo(tipo);
+  findByTipo(
+    @Param('tipo') tipo: string,
+    @Query('parentId') parentId?: string,
+  ) {
+    const pid = parentId ? parseInt(parentId, 10) : undefined;
+    return this.service.findByTipo(tipo, isNaN(pid as number) ? undefined : pid);
   }
 
   /** GET /api/catalogos/admin/:tipo → todos (incluye inactivos) — solo admin */

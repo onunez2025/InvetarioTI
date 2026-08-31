@@ -3,6 +3,8 @@ export interface Catalogo {
   tipo: string;
   nombre: string;
   extra?: string;
+  /** Jerarquía: departamento.parentId = gerencia.id  /  ubicacion.parentId = departamento.id */
+  parentId?: number;
   activo: boolean;
   creadoEn: string;
 }

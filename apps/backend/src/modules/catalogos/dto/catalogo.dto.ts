@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsOptional, IsBoolean, MaxLength } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsBoolean, IsNumber, MaxLength } from 'class-validator';
 
 export class CreateCatalogoDto {
   @IsString()
@@ -15,6 +15,11 @@ export class CreateCatalogoDto {
   @IsString()
   @MaxLength(200)
   extra?: string;
+
+  /** ID del catálogo padre (gerencia.id para departamentos, departamento.id para ubicaciones) */
+  @IsOptional()
+  @IsNumber()
+  parentId?: number;
 }
 
 export class UpdateCatalogoDto {
@@ -31,4 +36,8 @@ export class UpdateCatalogoDto {
   @IsOptional()
   @IsBoolean()
   activo?: boolean;
+
+  @IsOptional()
+  @IsNumber()
+  parentId?: number;
 }
