@@ -11,6 +11,10 @@ export const colaboradoresService = {
     const { data } = await api.get<Colaborador[]>('/api/colaboradores', { params: q ? { q } : {} });
     return data;
   },
+  async findById(id: number): Promise<Colaborador> {
+    const { data } = await api.get<Colaborador>(`/api/colaboradores/${id}`);
+    return data;
+  },
   async create(payload: CreateColaboradorPayload): Promise<Colaborador> {
     const { data } = await api.post<Colaborador>('/api/colaboradores', payload);
     return data;
@@ -38,6 +42,14 @@ export const asignacionesService = {
   },
   async findByEquipo(equipoId: number): Promise<Asignacion[]> {
     const { data } = await api.get<Asignacion[]>(`/api/asignaciones/equipo/${equipoId}`);
+    return data;
+  },
+  async findByColaborador(colaboradorId: number): Promise<Asignacion[]> {
+    const { data } = await api.get<Asignacion[]>(`/api/asignaciones/colaborador/${colaboradorId}`);
+    return data;
+  },
+  async findHistorialByColaborador(colaboradorId: number): Promise<Asignacion[]> {
+    const { data } = await api.get<Asignacion[]>(`/api/asignaciones/colaborador/${colaboradorId}/historial`);
     return data;
   },
   async findActivaByEquipo(equipoId: number): Promise<Asignacion | null> {

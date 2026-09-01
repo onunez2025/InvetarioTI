@@ -114,7 +114,8 @@ function SidebarContent({
         {!collapsed && <div className="it-sidebar-section-label">Principal</div>}
         {principalItems.map((item) => {
           const isActive = location.pathname === item.key ||
-            (item.key !== '/dashboard' && location.pathname.startsWith(item.key));
+            (item.key !== '/dashboard' && location.pathname.startsWith(item.key + '/')) ||
+            (item.key !== '/dashboard' && location.pathname === item.key);
           return (
             <Tooltip key={item.key} title={collapsed ? item.label : ''} placement="right">
               <div
@@ -249,6 +250,13 @@ const PAGE_TITLES: Record<string, string> = {
   '/config':       'Configuración',
 };
 
+function resolvePageTitle(pathname: string): string {
+  if (PAGE_TITLES[pathname]) return PAGE_TITLES[pathname];
+  if (/^\/equipos\/\d+/.test(pathname)) return 'Detalle de Equipo';
+  if (/^\/colaboradores\/\d+/.test(pathname)) return 'Detalle de Colaborador';
+  return 'InventarioTI';
+}
+
 /* ============================================================
    MAIN LAYOUT
    ============================================================ */
@@ -280,7 +288,7 @@ export default function MainLayout() {
     if (drawerOpen) setDrawerOpen(false);
   }, [navigate, drawerOpen]);
 
-  const pageTitle = PAGE_TITLES[location.pathname] ?? 'InventarioTI';
+  const pageTitle = resolvePageTitle(location.pathname);
 
   return (
     <>

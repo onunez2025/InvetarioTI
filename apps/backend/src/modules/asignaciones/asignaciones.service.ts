@@ -51,6 +51,14 @@ export class AsignacionesService {
     });
   }
 
+  /** Todas las asignaciones de un colaborador (activas + historial) */
+  findHistorialByColaborador(colaboradorId: number): Promise<Asignacion[]> {
+    return this.repo.find({
+      where: { colaboradorId },
+      order: { fechaInicio: 'DESC' },
+    });
+  }
+
   /** Crear nueva asignación. Si el equipo ya tenía una activa, la cierra primero. */
   async create(dto: CreateAsignacionDto, usuarioId: number): Promise<Asignacion> {
     // Cerrar asignación activa anterior (si existe)

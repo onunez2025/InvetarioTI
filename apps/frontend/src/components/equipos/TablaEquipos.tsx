@@ -2,6 +2,7 @@ import { Table, Input, Select, Tooltip, Typography } from 'antd';
 import {
   EditOutlined, StopOutlined, SearchOutlined, ReloadOutlined, FilterOutlined,
 } from '@ant-design/icons';
+import { useNavigate } from 'react-router-dom';
 import type { ColumnsType } from 'antd/es/table';
 import type { Equipo, FiltrosEquipos } from '../../types/equipo.types';
 
@@ -86,6 +87,7 @@ export default function TablaEquipos({
   equipos, total, cargando, filtros, rolUsuario,
   onFiltrar, onEditar, onEliminar, onRecargar,
 }: Props) {
+  const navigate = useNavigate();
   const puedeEditar   = ['ADMIN', 'GERENTE', 'TECNICO'].includes(rolUsuario);
   const puedeEliminar = ['ADMIN', 'GERENTE'].includes(rolUsuario);
 
@@ -168,7 +170,7 @@ export default function TablaEquipos({
           {puedeEditar && (
             <Tooltip title="Editar equipo">
               <button
-                onClick={() => onEditar(record)}
+                onClick={(e) => { e.stopPropagation(); onEditar(record); }}
                 aria-label={`Editar ${record.nombre}`}
                 style={{
                   width: 30, height: 30,
@@ -201,7 +203,7 @@ export default function TablaEquipos({
           {puedeEliminar && record.estado !== 'BAJA' && (
             <Tooltip title="Dar de baja">
               <button
-                onClick={() => onEliminar(record.id)}
+                onClick={(e) => { e.stopPropagation(); onEliminar(record.id); }}
                 aria-label={`Dar de baja ${record.nombre}`}
                 style={{
                   width: 30, height: 30,
@@ -327,6 +329,10 @@ export default function TablaEquipos({
         scroll={{ x: 1100 }}
         size="small"
         style={{ borderRadius: '0 0 12px 12px' }}
+        onRow={(record) => ({
+          onClick: () => navigate(`/equipos/${record.id}`),
+          style: { cursor: 'pointer' },
+        })}
         pagination={{
           current:   filtros.page ?? 1,
           pageSize:  filtros.limit ?? 50,

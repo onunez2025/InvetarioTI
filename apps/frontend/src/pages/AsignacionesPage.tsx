@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Table, Modal, Form, Input, Select, DatePicker, message,
   Popconfirm, Tag, Tooltip, Tabs, Empty, Spin,
@@ -536,6 +537,7 @@ function TabColaboradores({
   loading: boolean;
   onRefresh: () => void;
 }) {
+  const navigate = useNavigate();
   const [busqueda, setBusqueda] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [editColab, setEditColab] = useState<Colaborador | null>(null);
@@ -620,7 +622,7 @@ function TabColaboradores({
         <div style={{ display: 'flex', gap: 6 }}>
           <Tooltip title="Editar">
             <button className="it-btn" style={{ padding: '4px 8px', fontSize: 12 }}
-              onClick={() => { setEditColab(c); setModalOpen(true); }}>
+              onClick={(e) => { e.stopPropagation(); setEditColab(c); setModalOpen(true); }}>
               <EditOutlined />
             </button>
           </Tooltip>
@@ -631,7 +633,8 @@ function TabColaboradores({
                 onConfirm={() => desactivar(c.id)}
                 okText="Sí" cancelText="No" okButtonProps={{ danger: true }}
               >
-                <button className="it-btn" style={{ padding: '4px 8px', fontSize: 12, color: '#ef4444' }}>
+                <button className="it-btn" style={{ padding: '4px 8px', fontSize: 12, color: '#ef4444' }}
+                  onClick={(e) => e.stopPropagation()}>
                   <UserDeleteOutlined />
                 </button>
               </Popconfirm>
@@ -670,6 +673,10 @@ function TabColaboradores({
           size="small"
           pagination={{ pageSize: 15, showSizeChanger: false, showTotal: t => `${t} colaboradores` }}
           rowClassName={r => !r.activo ? 'row-inactive' : ''}
+          onRow={(record) => ({
+            onClick: () => navigate(`/colaboradores/${record.id}`),
+            style: { cursor: 'pointer' },
+          })}
         />
       </div>
 

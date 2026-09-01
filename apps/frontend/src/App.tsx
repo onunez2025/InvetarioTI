@@ -8,6 +8,8 @@ import HistorialPage    from './pages/HistorialPage';
 import UsuariosPage     from './pages/UsuariosPage';
 import ConfiguracionPage from './pages/ConfiguracionPage';
 import AsignacionesPage from './pages/AsignacionesPage';
+import EquipoDetailPage from './pages/EquipoDetailPage';
+import ColaboradorDetailPage from './pages/ColaboradorDetailPage';
 import MainLayout       from './layouts/MainLayout';
 import { useAuthStore } from './store/authStore';
 
@@ -57,7 +59,9 @@ export default function App() {
 
           <Route element={<RutaProtegida><MainLayout /></RutaProtegida>}>
             <Route path="/dashboard" element={<DashboardPage />} />
-            <Route path="/equipos"   element={<EquiposPage />} />
+            <Route path="/equipos"      element={<EquiposPage />} />
+            <Route path="/equipos/:id"  element={<EquipoDetailPage />} />
+            <Route path="/colaboradores/:id" element={<ColaboradorDetailPage />} />
 
             <Route path="/historial" element={
               <RutaRol roles={['ADMIN','GERENTE','TECNICO']}>

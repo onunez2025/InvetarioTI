@@ -41,10 +41,16 @@ export class AsignacionesController {
     return this.service.findActivaByEquipo(equipoId);
   }
 
-  /** GET /api/asignaciones/colaborador/:colaboradorId */
+  /** GET /api/asignaciones/colaborador/:colaboradorId  (solo activas) */
   @Get('colaborador/:colaboradorId')
   findByColaborador(@Param('colaboradorId', ParseIntPipe) colaboradorId: number) {
     return this.service.findByColaborador(colaboradorId);
+  }
+
+  /** GET /api/asignaciones/colaborador/:colaboradorId/historial  (todas) */
+  @Get('colaborador/:colaboradorId/historial')
+  findHistorialByColaborador(@Param('colaboradorId', ParseIntPipe) colaboradorId: number) {
+    return this.service.findHistorialByColaborador(colaboradorId);
   }
 
   /** POST /api/asignaciones */
