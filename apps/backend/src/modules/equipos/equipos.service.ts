@@ -21,7 +21,6 @@ export class EquiposService {
     limit = 50,
   ): Promise<{ data: Equipo[]; total: number }> {
     const where: FindOptionsWhere<Equipo> = {};
-    if (filtros.tipo) where.tipo = filtros.tipo;
     if (filtros.departamento) where.departamento = filtros.departamento;
     if (filtros.ubicacion) where.ubicacion = filtros.ubicacion;
     if (filtros.estado) where.estado = filtros.estado as any;

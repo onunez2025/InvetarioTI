@@ -6,8 +6,7 @@ import { Equipo } from '../equipos/entities/equipo.entity';
 
 const CAMPOS_AUDITADOS: (keyof Equipo)[] = [
   'nombre', 'empresa', 'gerencia', 'departamento', 'ubicacion',
-  'tipo', 'marca', 'modelo', 'serie', 'firmware', 'version',
-  'endOfSale', 'endOfSupport', 'estado', 'codigo', 'ceco',
+  'serie', 'estado', 'codigo', 'ceco', 'modeloId', 'compraDetalleId',
 ];
 
 @Injectable()

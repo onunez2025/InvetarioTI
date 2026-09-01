@@ -9,7 +9,6 @@ const mockEquipo: Partial<Equipo> = {
   id: 1,
   empresa: 'MT INDUSTRIAL',
   nombre: 'CORE1-SOLE',
-  tipo: 'SWITCH',
   estado: 'ACTIVO',
 };
 

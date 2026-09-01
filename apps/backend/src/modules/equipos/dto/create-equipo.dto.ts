@@ -1,11 +1,11 @@
-import { IsString, IsNotEmpty, IsOptional, IsDateString, IsIn } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsIn, IsInt } from 'class-validator';
 
 export class CreateEquipoDto {
   @IsString() @IsNotEmpty()
   empresa: string;
 
-  @IsString() @IsNotEmpty()
-  nombre: string;
+  @IsString() @IsOptional()
+  nombre?: string;
 
   @IsString() @IsOptional()
   gerencia?: string;
@@ -23,28 +23,13 @@ export class CreateEquipoDto {
   ubicacion?: string;
 
   @IsString() @IsOptional()
-  tipo?: string;
-
-  @IsString() @IsOptional()
-  marca?: string;
-
-  @IsString() @IsOptional()
-  modelo?: string;
-
-  @IsString() @IsOptional()
   serie?: string;
 
-  @IsString() @IsOptional()
-  firmware?: string;
+  @IsInt() @IsOptional()
+  modeloId?: number;
 
-  @IsString() @IsOptional()
-  version?: string;
-
-  @IsDateString() @IsOptional()
-  endOfSale?: string;
-
-  @IsDateString() @IsOptional()
-  endOfSupport?: string;
+  @IsInt() @IsOptional()
+  compraDetalleId?: number;
 
   @IsIn(['ACTIVO', 'BAJA', 'MANTENIMIENTO']) @IsOptional()
   estado?: string;

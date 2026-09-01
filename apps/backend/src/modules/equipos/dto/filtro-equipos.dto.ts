@@ -3,9 +3,6 @@ import { Type } from 'class-transformer';
 
 export class FiltroEquiposDto {
   @IsOptional() @IsString()
-  tipo?: string;
-
-  @IsOptional() @IsString()
   departamento?: string;
 
   @IsOptional() @IsString()
