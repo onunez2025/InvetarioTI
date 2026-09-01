@@ -12,7 +12,8 @@ import dayjs from 'dayjs';
 import type { ColumnsType } from 'antd/es/table';
 import { asignacionesService, colaboradoresService } from '../services/asignaciones.service';
 import type { Asignacion, Colaborador } from '../types/asignacion.types';
-import { useEquiposStore } from '../store/equiposStore';
+import { equiposService } from '../services/equipos.service';
+import type { Equipo } from '../types/equipo.types';
 
 function fmtDate(s?: string | null) {
   if (!s) return '—';
@@ -47,12 +48,18 @@ function ModalAsignacion({
 }) {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
-  const { equipos, cargar: cargarEquipos, cargado } = useEquiposStore();
+  const [equipos, setEquipos] = useState<Equipo[]>([]);
+  const [cargandoEquipos, setCargandoEquipos] = useState(false);
 
-  useEffect(() => { if (!cargado) cargarEquipos(); }, [cargado, cargarEquipos]);
-
+  // Cargar todos los equipos al abrir el modal (evita depender del store paginado)
   useEffect(() => {
     if (open) {
+      setCargandoEquipos(true);
+      equiposService.listar({ limit: 1000 })
+        .then(({ data }) => setEquipos(data))
+        .catch(() => message.error('No se pudo cargar la lista de equipos'))
+        .finally(() => setCargandoEquipos(false));
+
       form.resetFields();
       form.setFieldValue('fechaInicio', dayjs());
       if (equipoIdInicial) form.setFieldValue('equipoId', equipoIdInicial);
@@ -94,7 +101,8 @@ function ModalAsignacion({
         <Form.Item name="equipoId" label="Equipo" rules={[{ required: true, message: 'Selecciona un equipo' }]}>
           <Select
             showSearch
-            placeholder="Buscar por nombre, serie o código..."
+            loading={cargandoEquipos}
+            placeholder={cargandoEquipos ? 'Cargando equipos...' : 'Buscar por nombre, serie o código...'}
             filterOption={(input, opt) =>
               (opt?.label ?? '').toLowerCase().includes(input.toLowerCase())
             }
