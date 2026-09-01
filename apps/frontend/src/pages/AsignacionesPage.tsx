@@ -39,27 +39,22 @@ function ColabAvatar({ nombre }: { nombre: string }) {
    ============================================================ */
 function ModalAsignacion({
   open, onClose, onSaved, colaboradores, equipoIdInicial,
+  equipos, cargandoEquipos,
 }: {
   open: boolean;
   onClose: () => void;
   onSaved: () => void;
   colaboradores: Colaborador[];
   equipoIdInicial?: number;
+  equipos: Equipo[];
+  cargandoEquipos: boolean;
 }) {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
-  const [equipos, setEquipos] = useState<Equipo[]>([]);
-  const [cargandoEquipos, setCargandoEquipos] = useState(false);
 
-  // Cargar todos los equipos al abrir el modal (evita depender del store paginado)
+  // Resetear form al abrir
   useEffect(() => {
     if (open) {
-      setCargandoEquipos(true);
-      equiposService.listar({ limit: 1000 })
-        .then(({ data }) => setEquipos(data))
-        .catch(() => message.error('No se pudo cargar la lista de equipos'))
-        .finally(() => setCargandoEquipos(false));
-
       form.resetFields();
       form.setFieldValue('fechaInicio', dayjs());
       if (equipoIdInicial) form.setFieldValue('equipoId', equipoIdInicial);
@@ -695,6 +690,8 @@ function TabColaboradores({
 export default function AsignacionesPage() {
   const [activas, setActivas] = useState<Asignacion[]>([]);
   const [colaboradores, setColaboradores] = useState<Colaborador[]>([]);
+  const [equipos, setEquipos] = useState<Equipo[]>([]);
+  const [cargandoEquipos, setCargandoEquipos] = useState(false);
   const [loadingActivas, setLoadingActivas] = useState(false);
   const [loadingColabs, setLoadingColabs] = useState(false);
   const [tabActiva, setTabActiva] = useState('activas');
@@ -727,6 +724,15 @@ export default function AsignacionesPage() {
     } finally {
       setLoadingColabs(false);
     }
+  }, []);
+
+  // Cargar lista completa de equipos una sola vez al montar el page
+  useEffect(() => {
+    setCargandoEquipos(true);
+    equiposService.listar({ limit: 1000 })
+      .then(res => setEquipos(res.data ?? []))
+      .catch(() => message.error('Error al cargar equipos'))
+      .finally(() => setCargandoEquipos(false));
   }, []);
 
   useEffect(() => {
@@ -850,6 +856,8 @@ export default function AsignacionesPage() {
         onSaved={onAsignado}
         colaboradores={colaboradores}
         equipoIdInicial={equipoIdInicial}
+        equipos={equipos}
+        cargandoEquipos={cargandoEquipos}
       />
       <ModalDevolucion
         open={modalDevolucion}
