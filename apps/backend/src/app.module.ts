@@ -11,6 +11,8 @@ import { UsuariosModule } from './modules/usuarios/usuarios.module';
 import { HistorialModule } from './modules/historial/historial.module';
 import { ColaboradoresModule } from './modules/colaboradores/colaboradores.module';
 import { AsignacionesModule } from './modules/asignaciones/asignaciones.module';
+import { ModelosModule }     from './modules/modelos/modelos.module';
+import { ProveedoresModule } from './modules/proveedores/proveedores.module';
 
 @Module({
   imports: [
@@ -24,6 +26,8 @@ import { AsignacionesModule } from './modules/asignaciones/asignaciones.module';
     HistorialModule,
     ColaboradoresModule,
     AsignacionesModule,
+    ModelosModule,
+    ProveedoresModule,
   ],
   controllers: [AppController],
 })
