@@ -1,3 +1,5 @@
+import type { Modelo } from './modelo.types';
+
 export type EstadoEquipo = 'ACTIVO' | 'BAJA' | 'MANTENIMIENTO';
 
 export interface Equipo {
@@ -9,14 +11,9 @@ export interface Equipo {
   codigo?: string;
   ceco?: string;
   ubicacion?: string;
-  tipo?: string;
-  marca?: string;
-  modelo?: string;
   serie?: string;
-  firmware?: string;
-  version?: string;
-  endOfSale?: string;
-  endOfSupport?: string;
+  modeloId?: number;
+  modelo?: Modelo;
   estado: EstadoEquipo;
   creadoEn: string;
   actualizadoEn: string;
@@ -37,5 +34,5 @@ export interface PaginatedResponse<T> {
   total: number;
 }
 
-export type CreateEquipoPayload = Omit<Equipo, 'id' | 'creadoEn' | 'actualizadoEn'>;
+export type CreateEquipoPayload = Omit<Equipo, 'id' | 'creadoEn' | 'actualizadoEn' | 'modelo'>;
 export type UpdateEquipoPayload = Partial<CreateEquipoPayload>;

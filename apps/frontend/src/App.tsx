@@ -10,6 +10,11 @@ import ConfiguracionPage from './pages/ConfiguracionPage';
 import AsignacionesPage from './pages/AsignacionesPage';
 import EquipoDetailPage from './pages/EquipoDetailPage';
 import ColaboradorDetailPage from './pages/ColaboradorDetailPage';
+import ModelosPage       from './pages/ModelosPage';
+import ProveedoresPage   from './pages/ProveedoresPage';
+import ComprasPage       from './pages/ComprasPage';
+import CompraDetailPage  from './pages/CompraDetailPage';
+import InventarioPage    from './pages/InventarioPage';
 import MainLayout       from './layouts/MainLayout';
 import { useAuthStore } from './store/authStore';
 
@@ -85,6 +90,36 @@ export default function App() {
             <Route path="/config" element={
               <RutaRol roles={['ADMIN']}>
                 <ConfiguracionPage />
+              </RutaRol>
+            } />
+
+            <Route path="/modelos" element={
+              <RutaRol roles={['ADMIN','GERENTE','TECNICO','VISUALIZADOR']}>
+                <ModelosPage />
+              </RutaRol>
+            } />
+
+            <Route path="/proveedores" element={
+              <RutaRol roles={['ADMIN','TECNICO']}>
+                <ProveedoresPage />
+              </RutaRol>
+            } />
+
+            <Route path="/compras" element={
+              <RutaRol roles={['ADMIN','GERENTE','TECNICO','VISUALIZADOR']}>
+                <ComprasPage />
+              </RutaRol>
+            } />
+
+            <Route path="/compras/:id" element={
+              <RutaRol roles={['ADMIN','GERENTE','TECNICO','VISUALIZADOR']}>
+                <CompraDetailPage />
+              </RutaRol>
+            } />
+
+            <Route path="/inventario" element={
+              <RutaRol roles={['ADMIN','GERENTE','TECNICO','VISUALIZADOR']}>
+                <InventarioPage />
               </RutaRol>
             } />
           </Route>

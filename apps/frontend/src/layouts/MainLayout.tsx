@@ -12,6 +12,10 @@ import {
   BellOutlined,
   SearchOutlined,
   SwapOutlined,
+  AppstoreOutlined,
+  ShoppingCartOutlined,
+  InboxOutlined,
+  ShopOutlined,
 } from '@ant-design/icons';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
@@ -29,12 +33,16 @@ interface NavItem {
 
 /* ---- Navigation config ---- */
 const navItems: NavItem[] = [
-  { key: '/dashboard',    icon: <DashboardOutlined />, label: 'Dashboard',     section: 'principal' },
-  { key: '/equipos',      icon: <LaptopOutlined />,    label: 'Equipos',       section: 'principal' },
-  { key: '/asignaciones', icon: <SwapOutlined />,      label: 'Asignaciones',  section: 'principal', roles: ['ADMIN','GERENTE','TECNICO'] },
-  { key: '/historial',    icon: <HistoryOutlined />,   label: 'Historial',     section: 'principal', roles: ['ADMIN','GERENTE','TECNICO'] },
-  { key: '/usuarios',     icon: <TeamOutlined />,      label: 'Usuarios',      section: 'sistema',   roles: ['ADMIN','GERENTE'] },
-  { key: '/config',       icon: <SettingOutlined />,   label: 'Configuración', section: 'sistema',   roles: ['ADMIN'] },
+  { key: '/dashboard',    icon: <DashboardOutlined />,     label: 'Dashboard',     section: 'principal' },
+  { key: '/equipos',      icon: <LaptopOutlined />,        label: 'Equipos',       section: 'principal' },
+  { key: '/modelos',      icon: <AppstoreOutlined />,      label: 'Modelos',       section: 'principal' },
+  { key: '/compras',      icon: <ShoppingCartOutlined />,  label: 'Compras',       section: 'principal', roles: ['ADMIN','TECNICO'] },
+  { key: '/inventario',   icon: <InboxOutlined />,         label: 'Inventario',    section: 'principal' },
+  { key: '/asignaciones', icon: <SwapOutlined />,          label: 'Asignaciones',  section: 'principal', roles: ['ADMIN','GERENTE','TECNICO'] },
+  { key: '/historial',    icon: <HistoryOutlined />,       label: 'Historial',     section: 'principal', roles: ['ADMIN','GERENTE','TECNICO'] },
+  { key: '/proveedores',  icon: <ShopOutlined />,          label: 'Proveedores',   section: 'sistema',   roles: ['ADMIN','TECNICO'] },
+  { key: '/usuarios',     icon: <TeamOutlined />,          label: 'Usuarios',      section: 'sistema',   roles: ['ADMIN','GERENTE'] },
+  { key: '/config',       icon: <SettingOutlined />,       label: 'Configuración', section: 'sistema',   roles: ['ADMIN'] },
 ];
 
 /* ---- Logo SVG ---- */
@@ -244,6 +252,10 @@ function LogoutOverlay({ nombre }: { nombre: string }) {
 const PAGE_TITLES: Record<string, string> = {
   '/dashboard':    'Dashboard',
   '/equipos':      'Equipos',
+  '/modelos':      'Modelos',
+  '/proveedores':  'Proveedores',
+  '/compras':      'Compras',
+  '/inventario':   'Inventario',
   '/asignaciones': 'Asignaciones',
   '/historial':    'Historial de cambios',
   '/usuarios':     'Usuarios',
@@ -254,6 +266,7 @@ function resolvePageTitle(pathname: string): string {
   if (PAGE_TITLES[pathname]) return PAGE_TITLES[pathname];
   if (/^\/equipos\/\d+/.test(pathname)) return 'Detalle de Equipo';
   if (/^\/colaboradores\/\d+/.test(pathname)) return 'Detalle de Colaborador';
+  if (/^\/compras\/\d+/.test(pathname)) return 'Detalle de Compra';
   return 'InventarioTI';
 }
 

@@ -58,9 +58,9 @@ function TabGeneral({ equipo }: { equipo: Equipo }) {
       </div>
       <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #e2e8f0', padding: '0 20px', marginBottom: 20 }}>
         <InfoRow label="Nombre / Alias" value={equipo.nombre} />
-        <InfoRow label="Tipo" value={equipo.tipo ? <Tag style={{ fontSize: 11 }}>{equipo.tipo}</Tag> : null} />
-        <InfoRow label="Marca" value={equipo.marca} />
-        <InfoRow label="Modelo" value={equipo.modelo} />
+        <InfoRow label="Tipo" value={equipo.modelo?.tipo ? <Tag style={{ fontSize: 11 }}>{equipo.modelo.tipo}</Tag> : null} />
+        <InfoRow label="Marca" value={equipo.modelo?.marca} />
+        <InfoRow label="Modelo" value={equipo.modelo?.nombre} />
         <InfoRow label="Número de serie" value={<code style={{ background: '#f8fafc', padding: '2px 8px', borderRadius: 4, fontSize: 12 }}>{equipo.serie ?? '—'}</code>} />
         <InfoRow label="Código activo" value={equipo.codigo} />
         <InfoRow label="Empresa" value={equipo.empresa} />
@@ -82,15 +82,14 @@ function TabGeneral({ equipo }: { equipo: Equipo }) {
         Software y ciclo de vida
       </div>
       <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #e2e8f0', padding: '0 20px', marginBottom: 20 }}>
-        <InfoRow label="Versión / SO" value={equipo.version} />
-        <InfoRow label="Firmware" value={equipo.firmware} />
-        <InfoRow label="End of Sale" value={equipo.endOfSale ? fmtDate(equipo.endOfSale as unknown as string) : null} />
+        <InfoRow label="Firmware" value={equipo.modelo?.firmwareRef} />
+        <InfoRow label="End of Sale" value={equipo.modelo?.endOfSale ? fmtDate(equipo.modelo.endOfSale) : null} />
         <InfoRow label="End of Support" value={
-          equipo.endOfSupport ? (
+          equipo.modelo?.endOfSupport ? (
             (() => {
-              const dias = dayjs(equipo.endOfSupport as unknown as string).diff(dayjs(), 'day');
+              const dias = dayjs(equipo.modelo.endOfSupport).diff(dayjs(), 'day');
               const color = dias < 0 ? '#dc2626' : dias < 180 ? '#d97706' : '#16a34a';
-              return <span style={{ color, fontWeight: 600 }}>{fmtDate(equipo.endOfSupport as unknown as string)}{dias < 0 ? ' · Vencido' : dias < 180 ? ` · ${dias}d` : ''}</span>;
+              return <span style={{ color, fontWeight: 600 }}>{fmtDate(equipo.modelo.endOfSupport)}{dias < 0 ? ' · Vencido' : dias < 180 ? ` · ${dias}d` : ''}</span>;
             })()
           ) : null
         } />
@@ -291,7 +290,7 @@ export default function EquipoDetailPage() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, flex: 1 }}>
           <div style={{
             width: 52, height: 52,
-            background: tipoColor[equipo.tipo?.toUpperCase() ?? ''] ?? '#f1f5f9',
+            background: tipoColor[equipo.modelo?.tipo?.toUpperCase() ?? ''] ?? '#f1f5f9',
             borderRadius: 14,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: 24, flexShrink: 0,
@@ -303,7 +302,7 @@ export default function EquipoDetailPage() {
               {equipo.nombre}
             </h1>
             <p style={{ color: '#64748b', margin: '4px 0 0', fontSize: 13 }}>
-              {[equipo.tipo, equipo.marca, equipo.modelo].filter(Boolean).join(' · ')}
+              {[equipo.modelo?.tipo, equipo.modelo?.marca, equipo.modelo?.nombre].filter(Boolean).join(' · ')}
               {equipo.serie && (
                 <> · <code style={{ background: '#f1f5f9', padding: '1px 6px', borderRadius: 4, fontSize: 11 }}>{equipo.serie}</code></>
               )}

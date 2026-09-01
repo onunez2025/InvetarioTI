@@ -69,8 +69,8 @@ export default function FormEquipo({ abierto, equipo, onCerrar, onGuardado }: Pr
       if (equipo) {
         form.setFieldsValue({
           ...equipo,
-          endOfSale:    equipo.endOfSale    ? dayjs(equipo.endOfSale)    : null,
-          endOfSupport: equipo.endOfSupport ? dayjs(equipo.endOfSupport) : null,
+          endOfSale:    equipo.modelo?.endOfSale    ? dayjs(equipo.modelo.endOfSale)    : null,
+          endOfSupport: equipo.modelo?.endOfSupport ? dayjs(equipo.modelo.endOfSupport) : null,
         });
       } else {
         form.resetFields();

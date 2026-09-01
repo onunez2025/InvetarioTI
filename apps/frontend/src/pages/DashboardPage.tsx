@@ -184,13 +184,20 @@ export default function DashboardPage() {
 
   const hoy = new Date();
   const proximosFin = equipos.filter((e) => {
-    if (!e.endOfSupport) return false;
-    const diff = (new Date(e.endOfSupport).getTime() - hoy.getTime()) / 86400000;
+    if (!e.modelo?.endOfSupport) return false;
+    const diff = (new Date(e.modelo.endOfSupport).getTime() - hoy.getTime()) / 86400000;
     return diff >= 0 && diff <= 180;
   }).length;
 
   const porEstado = agrupar(equipos, 'estado');
-  const porTipo   = agrupar(equipos, 'tipo').slice(0, 7);
+  const porTipo   = (() => {
+    const mapa: Record<string, number> = {};
+    for (const e of equipos) {
+      const k = e.modelo?.tipo ?? 'Sin dato';
+      mapa[k] = (mapa[k] ?? 0) + 1;
+    }
+    return Object.entries(mapa).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value).slice(0, 7);
+  })();
 
   /* ---- Render ---- */
   return (

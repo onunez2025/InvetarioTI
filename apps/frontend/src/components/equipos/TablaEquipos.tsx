@@ -101,7 +101,7 @@ export default function TablaEquipos({
         <div>
           <div style={{ fontWeight: 600, color: '#0f172a', fontSize: 13, lineHeight: 1.3 }}>{r.nombre}</div>
           {r.modelo && (
-            <div style={{ color: '#94a3b8', fontSize: 11, marginTop: 2 }}>{r.marca ? `${r.marca} · ` : ''}{r.modelo}</div>
+            <div style={{ color: '#94a3b8', fontSize: 11, marginTop: 2 }}>{r.modelo.marca ? `${r.modelo.marca} · ` : ''}{r.modelo.nombre}</div>
           )}
         </div>
       ),
