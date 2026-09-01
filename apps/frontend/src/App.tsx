@@ -7,6 +7,7 @@ import EquiposPage      from './pages/EquiposPage';
 import HistorialPage    from './pages/HistorialPage';
 import UsuariosPage     from './pages/UsuariosPage';
 import ConfiguracionPage from './pages/ConfiguracionPage';
+import AsignacionesPage from './pages/AsignacionesPage';
 import MainLayout       from './layouts/MainLayout';
 import { useAuthStore } from './store/authStore';
 
@@ -61,6 +62,12 @@ export default function App() {
             <Route path="/historial" element={
               <RutaRol roles={['ADMIN','GERENTE','TECNICO']}>
                 <HistorialPage />
+              </RutaRol>
+            } />
+
+            <Route path="/asignaciones" element={
+              <RutaRol roles={['ADMIN','GERENTE','TECNICO']}>
+                <AsignacionesPage />
               </RutaRol>
             } />
 

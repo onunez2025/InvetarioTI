@@ -6,6 +6,7 @@ interface EquiposState {
   equipos: Equipo[];
   total: number;
   cargando: boolean;
+  cargado: boolean;
   filtros: FiltrosEquipos;
   setFiltros: (filtros: Partial<FiltrosEquipos>) => void;
   cargar: () => Promise<void>;
@@ -15,6 +16,7 @@ export const useEquiposStore = create<EquiposState>((set, get) => ({
   equipos: [],
   total: 0,
   cargando: false,
+  cargado: false,
   filtros: { page: 1, limit: 50 },
 
   setFiltros: (nuevos) => {
@@ -26,7 +28,7 @@ export const useEquiposStore = create<EquiposState>((set, get) => ({
     set({ cargando: true });
     try {
       const { data, total } = await equiposService.listar(get().filtros);
-      set({ equipos: data, total });
+      set({ equipos: data, total, cargado: true });
     } finally {
       set({ cargando: false });
     }

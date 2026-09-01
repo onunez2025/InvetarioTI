@@ -9,6 +9,8 @@ import { IntegracionesModule } from './modules/integraciones/integraciones.modul
 import { CatalogosModule } from './modules/catalogos/catalogos.module';
 import { UsuariosModule } from './modules/usuarios/usuarios.module';
 import { HistorialModule } from './modules/historial/historial.module';
+import { ColaboradoresModule } from './modules/colaboradores/colaboradores.module';
+import { AsignacionesModule } from './modules/asignaciones/asignaciones.module';
 
 @Module({
   imports: [
@@ -20,6 +22,8 @@ import { HistorialModule } from './modules/historial/historial.module';
     CatalogosModule,
     UsuariosModule,
     HistorialModule,
+    ColaboradoresModule,
+    AsignacionesModule,
   ],
   controllers: [AppController],
 })
