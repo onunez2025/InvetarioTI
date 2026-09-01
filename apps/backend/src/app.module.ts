@@ -11,8 +11,11 @@ import { UsuariosModule } from './modules/usuarios/usuarios.module';
 import { HistorialModule } from './modules/historial/historial.module';
 import { ColaboradoresModule } from './modules/colaboradores/colaboradores.module';
 import { AsignacionesModule } from './modules/asignaciones/asignaciones.module';
-import { ModelosModule }     from './modules/modelos/modelos.module';
-import { ProveedoresModule } from './modules/proveedores/proveedores.module';
+import { ModelosModule }          from './modules/modelos/modelos.module';
+import { ProveedoresModule }       from './modules/proveedores/proveedores.module';
+import { ComprasModule }           from './modules/compras/compras.module';
+import { StockAsignacionesModule } from './modules/stock-asignaciones/stock-asignaciones.module';
+import { InventarioModule }        from './modules/inventario/inventario.module';
 
 @Module({
   imports: [
@@ -28,6 +31,9 @@ import { ProveedoresModule } from './modules/proveedores/proveedores.module';
     AsignacionesModule,
     ModelosModule,
     ProveedoresModule,
+    ComprasModule,
+    StockAsignacionesModule,
+    InventarioModule,
   ],
   controllers: [AppController],
 })

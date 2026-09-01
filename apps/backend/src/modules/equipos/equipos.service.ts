@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Like, FindOptionsWhere } from 'typeorm';
+import { Repository } from 'typeorm';
 import { Equipo } from './entities/equipo.entity';
 import { CreateEquipoDto } from './dto/create-equipo.dto';
 import { UpdateEquipoDto } from './dto/update-equipo.dto';
@@ -20,19 +20,22 @@ export class EquiposService {
     page = 1,
     limit = 50,
   ): Promise<{ data: Equipo[]; total: number }> {
-    const where: FindOptionsWhere<Equipo> = {};
-    if (filtros.departamento) where.departamento = filtros.departamento;
-    if (filtros.ubicacion) where.ubicacion = filtros.ubicacion;
-    if (filtros.estado) where.estado = filtros.estado as any;
-    if (filtros.busqueda) where.nombre = Like(`%${filtros.busqueda}%`);
+    const qb = this.equipoRepo.createQueryBuilder('e')
+      .leftJoinAndSelect('e.modelo', 'modelo');
 
-    const [data, total] = await this.equipoRepo.findAndCount({
-      where,
-      skip: (page - 1) * limit,
-      take: limit,
-      order: { nombre: 'ASC' },
-    });
+    if (filtros.departamento) qb.andWhere('e.departamento = :dep', { dep: filtros.departamento });
+    if (filtros.ubicacion)    qb.andWhere('e.ubicacion = :ub', { ub: filtros.ubicacion });
+    if (filtros.estado)       qb.andWhere('e.estado = :estado', { estado: filtros.estado });
+    if (filtros.busqueda)     qb.andWhere(
+      '(e.nombre LIKE :q OR e.serie LIKE :q OR modelo.nombre LIKE :q OR modelo.codigo LIKE :q)',
+      { q: `%${filtros.busqueda}%` },
+    );
+    if (filtros.tipo)         qb.andWhere('modelo.tipo = :tipo', { tipo: filtros.tipo });
 
+    qb.orderBy('modelo.nombre', 'ASC').addOrderBy('e.serie', 'ASC');
+    qb.skip((page - 1) * limit).take(limit);
+
+    const [data, total] = await qb.getManyAndCount();
     return { data, total };
   }
 

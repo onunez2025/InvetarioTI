@@ -12,6 +12,9 @@ export class FiltroEquiposDto {
   estado?: string;
 
   @IsOptional() @IsString()
+  tipo?: string;
+
+  @IsOptional() @IsString()
   busqueda?: string;
 
   @IsOptional() @Type(() => Number) @IsInt() @Min(1)
