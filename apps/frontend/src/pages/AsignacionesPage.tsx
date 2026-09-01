@@ -14,8 +14,6 @@ import { asignacionesService, colaboradoresService } from '../services/asignacio
 import type { Asignacion, Colaborador } from '../types/asignacion.types';
 import { useEquiposStore } from '../store/equiposStore';
 
-const { Option } = Select;
-
 function fmtDate(s?: string | null) {
   if (!s) return '—';
   return dayjs(s).format('DD MMM YYYY');
@@ -303,13 +301,12 @@ function ModalColaborador({
    TAB ASIGNACIONES ACTIVAS
    ============================================================ */
 function TabActivas({
-  activas, loading, onAsignar, onDevolver, onRefresh,
+  activas, loading, onAsignar, onDevolver,
 }: {
   activas: Asignacion[];
   loading: boolean;
   onAsignar: (equipoId?: number) => void;
   onDevolver: (a: Asignacion) => void;
-  onRefresh: () => void;
 }) {
   const [busqueda, setBusqueda] = useState('');
 
@@ -803,7 +800,6 @@ export default function AsignacionesPage() {
                 loading={loadingActivas}
                 onAsignar={handleAsignar}
                 onDevolver={handleDevolver}
-                onRefresh={cargarActivas}
               />
             ),
           },
