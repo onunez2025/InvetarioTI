@@ -44,6 +44,11 @@ body {
   color: var(--text);
 }
 
+/* ---- Placeholders legibles ---- */
+::placeholder { color: #6b7280 !important; opacity: 1 !important; }
+::-webkit-input-placeholder { color: #6b7280 !important; }
+:-ms-input-placeholder { color: #6b7280 !important; }
+
 /* ---- Scrollbar ---- */
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }

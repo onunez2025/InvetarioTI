@@ -39,6 +39,7 @@ export default function App() {
           colorBgContainer: '#ffffff',
           colorBorder: '#e2e8f0',
           colorBorderSecondary: '#f1f5f9',
+          colorTextPlaceholder: '#6b7280',   // placeholder legible (antes era #bfbfbf)
           fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
           fontSize: 14,
         },
