@@ -29,6 +29,12 @@ const TIPO_DOC_COLORS: Record<TipoDocumento, string> = {
   NOTA_INGRESO: 'orange',
 };
 
+const ESTADO_COLORS: Record<string, string> = {
+  BORRADOR: 'default',
+  APROBADO: 'blue',
+  RECIBIDO: 'green',
+};
+
 interface CompraFormValues {
   proveedorId: number;
   tipoDocumento: TipoDocumento;
@@ -183,6 +189,14 @@ export default function ComprasPage() {
       dataIndex: 'fechaDocumento',
       key: 'fechaDocumento',
       render: (f: string) => dayjs(f).format('DD/MM/YYYY'),
+    },
+    {
+      title: 'Estado',
+      dataIndex: 'estado',
+      key: 'estado',
+      render: (estado: string) => (
+        <Tag color={ESTADO_COLORS[estado] ?? 'default'}>{estado ?? 'BORRADOR'}</Tag>
+      ),
     },
     {
       title: 'N° líneas',

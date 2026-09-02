@@ -20,6 +20,8 @@ export interface Compra {
   tipoDocumento: TipoDocumento;
   fechaDocumento: string;
   observaciones?: string;
+  estado: 'BORRADOR' | 'APROBADO' | 'RECIBIDO';
+  adjuntoUrl?: string;
   detalles: CompraDetalle[];
   creadoEn: string;
 }

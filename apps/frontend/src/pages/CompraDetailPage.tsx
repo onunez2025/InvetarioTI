@@ -1,12 +1,26 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Table, Tag, Modal, Select, Input, message } from 'antd';
+import {
+  Table, Tag, Modal, Select, Input, message, Button, Card, Popconfirm, Upload,
+} from 'antd';
 import type { ColumnsType } from 'antd/es/table';
+import {
+  CheckCircleOutlined,
+  FilePdfOutlined,
+  UploadOutlined,
+  ArrowLeftOutlined,
+} from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { comprasService } from '../services/compras.service';
 import type { Compra, CompraDetalle } from '../types/compra.types';
 
 const EMPRESA_OPTIONS = ['MT INDUSTRIAL S.A.C', 'SOLE S.A.C'] as const;
+
+const ESTADO_COLORS: Record<string, string> = {
+  BORRADOR: 'default',
+  APROBADO: 'blue',
+  RECIBIDO: 'green',
+};
 
 export default function CompraDetailPage() {
   const { id }    = useParams<{ id: string }>();
@@ -14,6 +28,7 @@ export default function CompraDetailPage() {
 
   const [compra, setCompra]     = useState<Compra | null>(null);
   const [cargando, setCargando] = useState(false);
+  const [accionando, setAccionando] = useState(false);
 
   // Modal "Registrar unidades"
   const [modalSeries, setModalSeries]         = useState(false);
@@ -36,6 +51,46 @@ export default function CompraDetailPage() {
   };
 
   useEffect(() => { cargar(); }, [id]);
+
+  const aprobarCompra = async () => {
+    if (!compra) return;
+    setAccionando(true);
+    try {
+      await comprasService.aprobar(compra.id);
+      message.success('Compra aprobada correctamente');
+      cargar();
+    } catch {
+      message.error('Error al aprobar la compra');
+    } finally {
+      setAccionando(false);
+    }
+  };
+
+  const marcarRecibida = async () => {
+    if (!compra) return;
+    setAccionando(true);
+    try {
+      await comprasService.recibir(compra.id);
+      message.success('Compra marcada como recibida');
+      cargar();
+    } catch {
+      message.error('Error al marcar la compra como recibida');
+    } finally {
+      setAccionando(false);
+    }
+  };
+
+  const subirAdjunto = async (file: File) => {
+    if (!compra) return false;
+    try {
+      await comprasService.uploadAdjunto(compra.id, file);
+      message.success('Adjunto subido correctamente');
+      cargar();
+    } catch {
+      message.error('Error al subir el adjunto');
+    }
+    return false;
+  };
 
   const abrirRegistrar = (detalle: CompraDetalle) => {
     setDetalleActivo(detalle);
@@ -109,13 +164,21 @@ export default function CompraDetailPage() {
     {
       title: 'Acciones',
       key: 'acciones',
-      width: 160,
+      width: 180,
       render: (_: unknown, r: CompraDetalle) => {
         if (r.modelo.tieneSerie) {
+          const deshabilitado = compra?.estado === 'BORRADOR';
           return (
             <button
               className="it-btn"
-              style={{ padding: '2px 10px', fontSize: 12 }}
+              style={{
+                padding: '2px 10px',
+                fontSize: 12,
+                cursor: deshabilitado ? 'not-allowed' : 'pointer',
+                opacity: deshabilitado ? 0.6 : 1,
+              }}
+              disabled={deshabilitado}
+              title={deshabilitado ? 'La compra debe estar APROBADA para registrar unidades' : ''}
               onClick={() => abrirRegistrar(r)}
             >
               Registrar unidades
@@ -132,10 +195,17 @@ export default function CompraDetailPage() {
       {/* ---- Page header ---- */}
       <div className="page-header">
         <div>
-          <div className="page-title">
-            {compra
-              ? `Compra #${compra.id} — ${compra.numeroDocumento}`
-              : 'Detalle de compra'}
+          <div className="page-title" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span>
+              {compra
+                ? `Compra #${compra.id} — ${compra.numeroDocumento}`
+                : 'Detalle de compra'}
+            </span>
+            {compra && (
+              <Tag color={ESTADO_COLORS[compra.estado] ?? 'default'} style={{ fontSize: 13, padding: '2px 8px' }}>
+                {compra.estado ?? 'BORRADOR'}
+              </Tag>
+            )}
           </div>
           {compra && (
             <div className="page-subtitle">
@@ -148,9 +218,40 @@ export default function CompraDetailPage() {
           )}
         </div>
 
-        <button className="it-btn" onClick={() => navigate('/compras')}>
-          ← Volver
-        </button>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          {compra?.estado === 'BORRADOR' && (
+            <Popconfirm
+              title="¿Aprobar esta compra?"
+              description="Una vez aprobada, se podrán registrar unidades."
+              onConfirm={aprobarCompra}
+              okText="Sí, aprobar"
+              cancelText="Cancelar"
+            >
+              <Button type="primary" loading={accionando}>
+                Aprobar compra
+              </Button>
+            </Popconfirm>
+          )}
+
+          {compra?.estado === 'APROBADO' && (
+            <Popconfirm
+              title="¿Marcar como Recibida?"
+              description="Confirma la recepción completa de la compra."
+              onConfirm={marcarRecibida}
+              okText="Sí, recibir"
+              cancelText="Cancelar"
+            >
+              <Button type="primary" icon={<CheckCircleOutlined />} loading={accionando}>
+                Marcar Recibida
+              </Button>
+            </Popconfirm>
+          )}
+
+          <button className="it-btn" onClick={() => navigate('/compras')}>
+            <ArrowLeftOutlined aria-hidden="true" />
+            Volver
+          </button>
+        </div>
       </div>
 
       {/* ---- Observaciones ---- */}
@@ -177,6 +278,39 @@ export default function CompraDetailPage() {
         dataSource={compra?.detalles ?? []}
         pagination={false}
       />
+
+      {/* ---- Sección Adjunto (Factura / OC) ---- */}
+      <Card title="Adjunto (Factura / OC)" style={{ marginTop: 20 }}>
+        {compra?.adjuntoUrl ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <Button
+              type="primary"
+              icon={<FilePdfOutlined />}
+              onClick={() => {
+                const baseUrl = import.meta.env.VITE_API_URL ?? '';
+                window.open(`${baseUrl}/api/compras/${compra.id}/adjunto`);
+              }}
+            >
+              Ver adjunto
+            </Button>
+            <Upload
+              showUploadList={false}
+              beforeUpload={subirAdjunto}
+              accept=".pdf,.jpg,.png"
+            >
+              <Button icon={<UploadOutlined />}>Reemplazar adjunto</Button>
+            </Upload>
+          </div>
+        ) : (
+          <Upload
+            showUploadList={false}
+            beforeUpload={subirAdjunto}
+            accept=".pdf,.jpg,.png"
+          >
+            <Button icon={<UploadOutlined />}>Subir factura / OC</Button>
+          </Upload>
+        )}
+      </Card>
 
       {/* ---- Modal registrar unidades ---- */}
       <Modal

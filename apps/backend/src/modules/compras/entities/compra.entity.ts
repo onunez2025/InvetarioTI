@@ -26,6 +26,12 @@ export class Compra {
 
   @Column({ length: 500, nullable: true }) observaciones: string;
 
+  @Column({ length: 20, default: 'BORRADOR' })
+  estado: string;
+
+  @Column({ name: 'adjunto_url', length: 500, nullable: true })
+  adjuntoUrl: string | null;
+
   @OneToMany(() => CompraDetalle, (d) => d.compra, { cascade: true })
   detalles: CompraDetalle[];
 

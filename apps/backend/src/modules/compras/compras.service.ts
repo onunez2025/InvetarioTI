@@ -1,6 +1,8 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
+import * as fs from 'fs';
+import * as path from 'path';
 import { Compra } from './entities/compra.entity';
 import { CompraDetalle } from './entities/compra-detalle.entity';
 import { Equipo } from '../equipos/entities/equipo.entity';
@@ -44,6 +46,7 @@ export class ComprasService {
       tipoDocumento:   dto.tipoDocumento as any,
       fechaDocumento:  dto.fechaDocumento,
       observaciones:   dto.observaciones,
+      estado:          'BORRADOR',
       creadoPorId:     usuarioId,
     });
     const saved = await this.compraRepo.save(compra);
@@ -57,6 +60,42 @@ export class ComprasService {
     return this.findOne(saved.id);
   }
 
+  async aprobar(id: number, usuarioId?: number): Promise<Compra> {
+    const compra = await this.compraRepo.findOne({ where: { id } });
+    if (!compra) throw new NotFoundException(`Compra ${id} no encontrada`);
+    if (compra.estado !== 'BORRADOR') {
+      throw new BadRequestException('Solo compras en BORRADOR pueden aprobarse');
+    }
+    compra.estado = 'APROBADO';
+    return this.compraRepo.save(compra);
+  }
+
+  async recibirCompra(id: number, usuarioId?: number): Promise<Compra> {
+    const compra = await this.compraRepo.findOne({ where: { id } });
+    if (!compra) throw new NotFoundException(`Compra ${id} no encontrada`);
+    if (compra.estado !== 'APROBADO') {
+      throw new BadRequestException('La compra debe estar APROBADA para marcarla como recibida');
+    }
+    compra.estado = 'RECIBIDO';
+    return this.compraRepo.save(compra);
+  }
+
+  async guardarAdjunto(id: number, file: Express.Multer.File): Promise<{ adjuntoUrl: string }> {
+    const compra = await this.compraRepo.findOne({ where: { id } });
+    if (!compra) throw new NotFoundException(`Compra ${id} no encontrada`);
+    const uploadsDir = path.resolve('uploads', 'compras', String(id));
+    fs.mkdirSync(uploadsDir, { recursive: true });
+    const ext = path.extname(file.originalname) || '.pdf';
+    const dest = path.join(uploadsDir, `adjunto${ext}`);
+    fs.copyFileSync(file.path, dest);
+    try {
+      fs.unlinkSync(file.path);
+    } catch {}
+    compra.adjuntoUrl = dest;
+    await this.compraRepo.save(compra);
+    return { adjuntoUrl: dest };
+  }
+
   async addDetalle(compraId: number, dto: CreateCompraDetalleDto): Promise<CompraDetalle> {
     await this.findOne(compraId);
     const det = this.detalleRepo.create({ compraId, ...dto });
@@ -66,9 +105,12 @@ export class ComprasService {
   async registrarUnidades(detalleId: number, dto: RegistrarUnidadesDto): Promise<Equipo[]> {
     const detalle = await this.detalleRepo.findOne({
       where: { id: detalleId },
-      relations: { modelo: true },
+      relations: { modelo: true, compra: true },
     });
     if (!detalle) throw new NotFoundException(`Línea de compra ${detalleId} no encontrada`);
+    if (detalle.compra && !['APROBADO', 'RECIBIDO'].includes(detalle.compra.estado)) {
+      throw new BadRequestException('La compra debe estar APROBADA antes de registrar unidades');
+    }
     if (!detalle.modelo.tieneSerie) {
       throw new BadRequestException('Este modelo no usa números de serie (tiene_serie = false)');
     }
