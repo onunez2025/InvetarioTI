@@ -16,6 +16,7 @@ import { ProveedoresModule }       from './modules/proveedores/proveedores.modul
 import { ComprasModule }           from './modules/compras/compras.module';
 import { StockAsignacionesModule } from './modules/stock-asignaciones/stock-asignaciones.module';
 import { InventarioModule }        from './modules/inventario/inventario.module';
+import { DashboardModule }         from './modules/dashboard/dashboard.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { InventarioModule }        from './modules/inventario/inventario.module'
     ComprasModule,
     StockAsignacionesModule,
     InventarioModule,
+    DashboardModule,
   ],
   controllers: [AppController],
 })
