@@ -15,6 +15,7 @@ import ProveedoresPage   from './pages/ProveedoresPage';
 import ComprasPage       from './pages/ComprasPage';
 import CompraDetailPage  from './pages/CompraDetailPage';
 import InventarioPage    from './pages/InventarioPage';
+import ReportesPage      from './pages/ReportesPage';
 import MainLayout       from './layouts/MainLayout';
 import { useAuthStore } from './store/authStore';
 
@@ -120,6 +121,12 @@ export default function App() {
             <Route path="/inventario" element={
               <RutaRol roles={['ADMIN','GERENTE','TECNICO','VISUALIZADOR']}>
                 <InventarioPage />
+              </RutaRol>
+            } />
+
+            <Route path="/reportes" element={
+              <RutaRol roles={['ADMIN','GERENTE','TECNICO','TI_ADMIN']}>
+                <ReportesPage />
               </RutaRol>
             } />
           </Route>

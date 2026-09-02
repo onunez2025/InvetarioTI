@@ -10,6 +10,7 @@ import api from '../services/api';
 import { useEquiposStore } from '../store/equiposStore';
 import { useAuthStore } from '../store/authStore';
 import { equiposService } from '../services/equipos.service';
+import { reportesService } from '../services/reportes.service';
 import TablaEquipos from '../components/equipos/TablaEquipos';
 import FormEquipo from '../components/equipos/FormEquipo';
 import type { Equipo } from '../types/equipo.types';
@@ -155,6 +156,21 @@ export default function EquiposPage() {
               </Upload>
             </>
           )}
+
+          <button
+            className="it-btn"
+            onClick={() =>
+              reportesService.equipos({
+                ...(filtros.estado && { estado: filtros.estado }),
+                ...(filtros.gerencia && { gerencia: filtros.gerencia }),
+                ...(filtros.modeloId && { modeloId: String(filtros.modeloId) }),
+              })
+            }
+            title="Exportar listado a Excel"
+          >
+            <DownloadOutlined aria-hidden="true" />
+            Exportar
+          </button>
 
           {puedeCrear && (
             <button className="it-btn it-btn-primary" onClick={abrirCrear}>

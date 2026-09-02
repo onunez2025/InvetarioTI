@@ -23,6 +23,8 @@ export interface FiltrosEquipos {
   tipo?: string;
   departamento?: string;
   ubicacion?: string;
+  gerencia?: string;
+  modeloId?: number;
   estado?: string;
   busqueda?: string;
   page?: number;

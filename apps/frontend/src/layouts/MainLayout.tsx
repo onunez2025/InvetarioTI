@@ -16,6 +16,7 @@ import {
   ShoppingCartOutlined,
   InboxOutlined,
   ShopOutlined,
+  FileExcelOutlined,
 } from '@ant-design/icons';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
@@ -40,6 +41,7 @@ const navItems: NavItem[] = [
   { key: '/inventario',   icon: <InboxOutlined />,         label: 'Inventario',    section: 'principal' },
   { key: '/asignaciones', icon: <SwapOutlined />,          label: 'Asignaciones',  section: 'principal', roles: ['ADMIN','GERENTE','TECNICO'] },
   { key: '/historial',    icon: <HistoryOutlined />,       label: 'Historial',     section: 'principal', roles: ['ADMIN','GERENTE','TECNICO'] },
+  { key: '/reportes',     icon: <FileExcelOutlined />,     label: 'Reportes',      section: 'principal', roles: ['ADMIN','GERENTE','TECNICO','TI_ADMIN'] },
   { key: '/proveedores',  icon: <ShopOutlined />,          label: 'Proveedores',   section: 'sistema',   roles: ['ADMIN','TECNICO'] },
   { key: '/usuarios',     icon: <TeamOutlined />,          label: 'Usuarios',      section: 'sistema',   roles: ['ADMIN','GERENTE'] },
   { key: '/config',       icon: <SettingOutlined />,       label: 'Configuración', section: 'sistema',   roles: ['ADMIN'] },
@@ -258,6 +260,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/inventario':   'Inventario',
   '/asignaciones': 'Asignaciones',
   '/historial':    'Historial de cambios',
+  '/reportes':     'Reportes',
   '/usuarios':     'Usuarios',
   '/config':       'Configuración',
 };
