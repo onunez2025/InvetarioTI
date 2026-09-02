@@ -1,6 +1,6 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class CreateSchema1001 implements MigrationInterface {
+export class CreateSchema1685000000001 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`
       IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'INV_ZYL')

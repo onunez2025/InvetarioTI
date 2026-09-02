@@ -1,6 +1,6 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class RefactorEquipos1007 implements MigrationInterface {
+export class RefactorEquipos1685000000007 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
     // Agregar nuevas columnas
     await queryRunner.query(`

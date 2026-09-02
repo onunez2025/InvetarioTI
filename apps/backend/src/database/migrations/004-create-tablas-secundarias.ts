@@ -1,6 +1,6 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class CreateTablasSecundarias1004 implements MigrationInterface {
+export class CreateTablasSecundarias1685000000004 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`
       CREATE TABLE INV_ZYL.asignaciones (

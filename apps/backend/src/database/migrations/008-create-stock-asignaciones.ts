@@ -1,6 +1,6 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class CreateStockAsignaciones1008 implements MigrationInterface {
+export class CreateStockAsignaciones1685000000008 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`
       CREATE TABLE inventario_ti.stock_asignaciones (

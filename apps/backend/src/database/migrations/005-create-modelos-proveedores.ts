@@ -1,6 +1,6 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class CreateModelosProveedores1005 implements MigrationInterface {
+export class CreateModelosProveedores1685000000005 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`
       CREATE TABLE inventario_ti.proveedores (
