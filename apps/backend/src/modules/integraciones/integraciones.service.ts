@@ -1,9 +1,14 @@
 import { Injectable, Logger } from '@nestjs/common';
 import * as XLSX from 'xlsx';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as os from 'os';
+import * as crypto from 'crypto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { EquiposService } from '../equipos/equipos.service';
 import { Modelo } from '../modelos/entities/modelo.entity';
+import { buildExcel } from '../reportes/excel.builder';
 
 const COLUMNAS_PLANTILLA = [
   'EMPRESA', 'NOMBRE DISPOSITIVO', 'TIPO', 'MARCA', 'MODELO',
@@ -71,6 +76,7 @@ export interface ResultadoImportacion {
   importados: number;
   errores: number;
   detalles: string[];
+  archivoErrores?: string;
 }
 
 @Injectable()
@@ -111,6 +117,7 @@ export class IntegracionesService {
     let importados = 0;
     let errores = 0;
     const detalles: string[] = [];
+    const filasConError: any[] = [];
 
     for (const fila of filas) {
       const nombre = fila['NOMBRE DISPOSITIVO'];
@@ -130,6 +137,16 @@ export class IntegracionesService {
           const msg = `Modelo no encontrado para "${nombre}": ${tipo ?? ''}/${marca ?? ''}/${modeloNombre ?? ''}`;
           detalles.push(msg);
           this.logger.warn(msg);
+          filasConError.push({
+            fila: filas.indexOf(fila) + 2,
+            empresa: fila.EMPRESA ?? '',
+            nombre,
+            tipo: fila.TIPO ?? '',
+            marca: fila.MARCA ?? '',
+            modelo: fila.MODELO ?? '',
+            serie: fila.SERIE ?? '',
+            error: `Modelo no encontrado: ${tipo ?? ''}/${marca ?? ''}/${modeloNombre ?? ''}`,
+          });
           continue;
         }
 
@@ -153,10 +170,47 @@ export class IntegracionesService {
         const msg = `Error en "${nombre}": ${(error as Error).message}`;
         detalles.push(msg);
         this.logger.warn(msg);
+        filasConError.push({
+          fila: filas.indexOf(fila) + 2,
+          empresa: fila.EMPRESA ?? '',
+          nombre,
+          tipo: fila.TIPO ?? '',
+          marca: fila.MARCA ?? '',
+          modelo: fila.MODELO ?? '',
+          serie: fila.SERIE ?? '',
+          error: (error as Error).message,
+        });
+      }
+    }
+
+    let archivoErrores: string | undefined;
+    if (errores > 0 && filasConError.length > 0) {
+      try {
+        const uuid = crypto.randomUUID();
+        const dir = path.join(os.tmpdir(), 'import-errors');
+        fs.mkdirSync(dir, { recursive: true });
+        const buf = await buildExcel(
+          'Errores de importación',
+          [
+            { key: 'fila', header: 'Fila', width: 8 },
+            { key: 'empresa', header: 'EMPRESA', width: 20 },
+            { key: 'nombre', header: 'NOMBRE DISPOSITIVO', width: 28 },
+            { key: 'tipo', header: 'TIPO', width: 14 },
+            { key: 'marca', header: 'MARCA', width: 14 },
+            { key: 'modelo', header: 'MODELO', width: 20 },
+            { key: 'serie', header: 'SERIE', width: 18 },
+            { key: 'error', header: 'Error', width: 50 },
+          ],
+          filasConError,
+        );
+        fs.writeFileSync(path.join(dir, `${uuid}.xlsx`), buf);
+        archivoErrores = uuid;
+      } catch (e) {
+        this.logger.error('Error generando archivo Excel de errores', e);
       }
     }
 
     this.logger.log(`Importación finalizada — importados: ${importados}, errores: ${errores}`);
-    return { importados, errores, detalles };
+    return { importados, errores, detalles, archivoErrores };
   }
 }

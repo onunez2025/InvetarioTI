@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Upload, Modal, message } from 'antd';
+import { Upload, Modal, message, Button } from 'antd';
 import {
   PlusOutlined,
   UploadOutlined,
@@ -61,13 +61,31 @@ export default function EquiposPage() {
       message.success(`Importados: ${resultado.importados} — Errores: ${resultado.errores}`);
       if (resultado.errores > 0) {
         Modal.warning({
-          title: 'Algunas filas no se importaron',
+          title: `${resultado.errores} fila(s) no se importaron`,
           content: (
-            <ul style={{ maxHeight: 200, overflowY: 'auto', paddingLeft: 18 }}>
-              {resultado.detalles.map((d: string, i: number) => (
-                <li key={i} style={{ marginBottom: 4, fontSize: 13 }}>{d}</li>
-              ))}
-            </ul>
+            <div>
+              <ul style={{ maxHeight: 180, overflowY: 'auto', paddingLeft: 18, marginBottom: 12 }}>
+                {resultado.detalles.map((d: string, i: number) => (
+                  <li key={i} style={{ marginBottom: 4, fontSize: 13 }}>
+                    {d}
+                  </li>
+                ))}
+              </ul>
+              {resultado.archivoErrores && (
+                <Button
+                  size="small"
+                  type="primary"
+                  danger
+                  icon={<DownloadOutlined />}
+                  onClick={() => {
+                    const baseUrl = import.meta.env.VITE_API_URL ?? '';
+                    window.open(`${baseUrl}/api/integraciones/errores/${resultado.archivoErrores}`);
+                  }}
+                >
+                  Descargar Excel con errores
+                </Button>
+              )}
+            </div>
           ),
         });
       }

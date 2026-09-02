@@ -1,8 +1,11 @@
 import {
   Controller, Get, Post, UseInterceptors, UploadedFile,
-  UseGuards, Request, BadRequestException, Res,
+  UseGuards, Request, BadRequestException, NotFoundException, Param, Res,
 } from '@nestjs/common';
 import type { Response } from 'express';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as os from 'os';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { IntegracionesService } from './integraciones.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -43,5 +46,24 @@ export class IntegracionesController {
   async importarExcel(@UploadedFile() archivo: Express.Multer.File, @Request() req: any) {
     if (!archivo) throw new BadRequestException('Archivo Excel requerido');
     return this.integracionesService.importarExcel(archivo.buffer, req.user.id);
+  }
+
+  @Get('errores/:uuid')
+  @Roles('ADMIN')
+  async descargarErrores(@Param('uuid') uuid: string, @Res() res: Response) {
+    if (!/^[0-9a-f-]{36}$/i.test(uuid)) throw new BadRequestException('UUID inválido');
+    const filePath = path.join(os.tmpdir(), 'import-errors', `${uuid}.xlsx`);
+    if (!fs.existsSync(filePath)) throw new NotFoundException('Archivo no encontrado');
+    res.set({
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Disposition': 'attachment; filename="errores-importacion.xlsx"',
+    });
+    const stream = fs.createReadStream(filePath);
+    stream.on('end', () => {
+      try {
+        fs.unlinkSync(filePath);
+      } catch {}
+    });
+    stream.pipe(res);
   }
 }

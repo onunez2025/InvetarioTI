@@ -39,7 +39,7 @@ export const equiposService = {
     return data;
   },
 
-  async importarExcel(archivo: File): Promise<{ importados: number; errores: number; detalles: string[] }> {
+  async importarExcel(archivo: File): Promise<{ importados: number; errores: number; detalles: string[]; archivoErrores?: string }> {
     const form = new FormData();
     form.append('archivo', archivo);
     const { data } = await api.post('/api/integraciones/importar-excel', form, {
