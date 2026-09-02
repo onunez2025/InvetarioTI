@@ -61,6 +61,7 @@ function TabGeneral({ equipo }: { equipo: Equipo }) {
         <InfoRow label="Tipo" value={equipo.modelo?.tipo ? <Tag style={{ fontSize: 11 }}>{equipo.modelo.tipo}</Tag> : null} />
         <InfoRow label="Marca" value={equipo.modelo?.marca} />
         <InfoRow label="Modelo" value={equipo.modelo?.nombre} />
+        <InfoRow label="Código modelo" value={equipo.modelo?.codigo} />
         <InfoRow label="Número de serie" value={<code style={{ background: '#f8fafc', padding: '2px 8px', borderRadius: 4, fontSize: 12 }}>{equipo.serie ?? '—'}</code>} />
         <InfoRow label="Código activo" value={equipo.codigo} />
         <InfoRow label="Empresa" value={equipo.empresa} />

@@ -1,13 +1,13 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Table, Modal, Form, Input, Select, DatePicker, message,
-  Popconfirm, Tag, Tooltip, Tabs, Empty, Spin,
+  Table, Modal, Form, Input, Select, DatePicker, InputNumber, message,
+  Popconfirm, Tag, Tooltip, Tabs, Empty, Spin, Row, Col,
 } from 'antd';
 import {
   PlusOutlined, EditOutlined, UserDeleteOutlined,
   SwapOutlined, CheckCircleOutlined, HistoryOutlined,
-  TeamOutlined, LaptopOutlined,
+  TeamOutlined, LaptopOutlined, InboxOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import type { ColumnsType } from 'antd/es/table';
@@ -15,6 +15,10 @@ import { asignacionesService, colaboradoresService } from '../services/asignacio
 import type { Asignacion, Colaborador } from '../types/asignacion.types';
 import { equiposService } from '../services/equipos.service';
 import type { Equipo } from '../types/equipo.types';
+import { stockAsignacionesService } from '../services/stockAsignaciones.service';
+import type { StockAsignacion, CreateStockAsignacionPayload } from '../types/stock-asignacion.types';
+import { modelosService } from '../services/modelos.service';
+import type { Modelo } from '../types/modelo.types';
 
 function fmtDate(s?: string | null) {
   if (!s) return '—';
@@ -692,6 +696,217 @@ function TabColaboradores({
 }
 
 /* ============================================================
+   MODAL ASIGNAR PERIFÉRICO
+   ============================================================ */
+function ModalAsignarPeriferico({
+  open, onClose, onSaved, colaboradores,
+}: {
+  open: boolean; onClose: () => void; onSaved: () => void; colaboradores: Colaborador[];
+}) {
+  const [form] = Form.useForm();
+  const [loading, setLoading] = useState(false);
+  const [modelos, setModelos] = useState<Modelo[]>([]);
+  const [cargandoModelos, setCargandoModelos] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      form.resetFields();
+      form.setFieldValue('fechaInicio', dayjs());
+      form.setFieldValue('cantidad', 1);
+      setCargandoModelos(true);
+      modelosService.listar({ tieneSerie: false, activo: true })
+        .then(r => setModelos(r.data))
+        .catch(() => {})
+        .finally(() => setCargandoModelos(false));
+    }
+  }, [open, form]);
+
+  const onFinish = async (vals: Record<string, unknown>) => {
+    setLoading(true);
+    try {
+      const payload: CreateStockAsignacionPayload = {
+        modeloId: vals.modeloId as number,
+        colaboradorId: vals.colaboradorId as number,
+        cantidad: vals.cantidad as number,
+        fechaInicio: (vals.fechaInicio as dayjs.Dayjs).format('YYYY-MM-DD'),
+        observaciones: vals.observaciones as string | undefined,
+      };
+      await stockAsignacionesService.crear(payload);
+      message.success('Periférico asignado correctamente');
+      onSaved();
+      onClose();
+    } catch {
+      message.error('No se pudo asignar el periférico');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Modal
+      title="Asignar periférico"
+      open={open}
+      onCancel={onClose}
+      onOk={() => form.submit()}
+      okText="Asignar"
+      cancelText="Cancelar"
+      confirmLoading={loading}
+      destroyOnClose
+      width={480}
+    >
+      <Form form={form} layout="vertical" onFinish={onFinish} size="small">
+        <Form.Item name="colaboradorId" label="Colaborador" rules={[{ required: true }]}>
+          <Select showSearch filterOption={(input, opt) => String(opt?.label ?? '').toLowerCase().includes(input.toLowerCase())}>
+            {colaboradores.map(c => (
+              <Select.Option key={c.id} value={c.id} label={c.nombre}>{c.nombre}</Select.Option>
+            ))}
+          </Select>
+        </Form.Item>
+        <Form.Item name="modeloId" label="Modelo (periférico)" rules={[{ required: true }]}>
+          <Select showSearch loading={cargandoModelos} filterOption={(input, opt) => String(opt?.label ?? '').toLowerCase().includes(input.toLowerCase())}>
+            {modelos.map(m => (
+              <Select.Option key={m.id} value={m.id} label={`${m.codigo} — ${m.nombre}`}>
+                <span style={{ fontWeight: 600 }}>{m.codigo}</span>
+                <span style={{ color: '#64748b', marginLeft: 6 }}>{m.nombre}</span>
+              </Select.Option>
+            ))}
+          </Select>
+        </Form.Item>
+        <Row gutter={12}>
+          <Col span={12}>
+            <Form.Item name="cantidad" label="Cantidad" rules={[{ required: true }]}>
+              <InputNumber min={1} style={{ width: '100%' }} />
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+            <Form.Item name="fechaInicio" label="Fecha inicio" rules={[{ required: true }]}>
+              <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" />
+            </Form.Item>
+          </Col>
+        </Row>
+        <Form.Item name="observaciones" label="Observaciones">
+          <Input.TextArea rows={2} placeholder="Opcional..." />
+        </Form.Item>
+      </Form>
+    </Modal>
+  );
+}
+
+/* ============================================================
+   TAB PERIFÉRICOS ACTIVOS
+   ============================================================ */
+function TabPerifericosActivos({ colaboradores }: { colaboradores: Colaborador[] }) {
+  const [data, setData] = useState<StockAsignacion[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
+
+  const cargar = useCallback(async () => {
+    setLoading(true);
+    try {
+      const results = await Promise.all(
+        colaboradores.map(c => stockAsignacionesService.porColaborador(c.id, true).catch(() => [] as StockAsignacion[]))
+      );
+      const all = results.flat();
+      setData(all);
+    } catch {
+      setData([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [colaboradores]);
+
+  useEffect(() => {
+    if (colaboradores.length > 0) cargar();
+  }, [cargar, colaboradores.length]);
+
+  const columns: ColumnsType<StockAsignacion> = [
+    {
+      title: 'Colaborador', key: 'colaborador',
+      render: (_, r) => (
+        <div>
+          <div style={{ fontWeight: 600, fontSize: 13 }}>{r.colaborador?.nombre ?? `ID ${r.colaboradorId}`}</div>
+        </div>
+      ),
+    },
+    {
+      title: 'Modelo', key: 'modelo',
+      render: (_, r) => (
+        <div>
+          <div style={{ fontWeight: 600, fontSize: 13 }}>{r.modelo?.nombre ?? `ID ${r.modeloId}`}</div>
+          <div style={{ fontSize: 11, color: '#94a3b8' }}>{r.modelo?.codigo}</div>
+        </div>
+      ),
+    },
+    { title: 'Tipo', key: 'tipo', render: (_, r) => r.modelo?.tipo ? <Tag style={{ fontSize: 11 }}>{r.modelo.tipo}</Tag> : '—' },
+    { title: 'Cantidad', dataIndex: 'cantidad', align: 'right', render: (v) => <span style={{ fontWeight: 700 }}>{v}</span> },
+    { title: 'Desde', dataIndex: 'fechaInicio', render: (v) => <span style={{ fontSize: 12, color: '#64748b' }}>{fmtDate(v)}</span> },
+    {
+      title: 'Días', key: 'dias',
+      render: (_, r) => {
+        const dias = dayjs().diff(dayjs(r.fechaInicio), 'day');
+        const color = dias > 365 ? '#dc2626' : dias > 180 ? '#d97706' : '#16a34a';
+        return <span style={{ fontSize: 12, color, fontWeight: 600 }}>{dias}d</span>;
+      },
+    },
+    {
+      title: '', key: 'acciones',
+      render: (_, r) => (
+        <Popconfirm
+          title="¿Devolver este periférico?"
+          onConfirm={async () => {
+            try {
+              await stockAsignacionesService.devolver(r.id, dayjs().format('YYYY-MM-DD'));
+              message.success('Periférico devuelto');
+              cargar();
+            } catch { message.error('Error al devolver'); }
+          }}
+          okText="Devolver" cancelText="Cancelar"
+        >
+          <button style={{
+            border: '1.5px solid #e2e8f0', borderRadius: 6, background: '#fff',
+            cursor: 'pointer', color: '#64748b', padding: '3px 10px', fontSize: 12,
+          }}>
+            Devolver
+          </button>
+        </Popconfirm>
+      ),
+    },
+  ];
+
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
+        <button
+          onClick={() => setModalOpen(true)}
+          style={{
+            background: '#7c3aed', color: '#fff', border: 'none', borderRadius: 8,
+            padding: '7px 16px', cursor: 'pointer', fontWeight: 600, fontSize: 13,
+            display: 'flex', alignItems: 'center', gap: 6,
+          }}
+        >
+          <PlusOutlined />Asignar periférico
+        </button>
+      </div>
+      <Table<StockAsignacion>
+        dataSource={data}
+        columns={columns}
+        rowKey="id"
+        loading={loading}
+        size="small"
+        pagination={{ pageSize: 25 }}
+        locale={{ emptyText: 'Sin periféricos activos' }}
+      />
+      <ModalAsignarPeriferico
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        onSaved={cargar}
+        colaboradores={colaboradores}
+      />
+    </div>
+  );
+}
+
+/* ============================================================
    ASIGNACIONES PAGE
    ============================================================ */
 export default function AsignacionesPage() {
@@ -852,6 +1067,11 @@ export default function AsignacionesPage() {
                 onRefresh={cargarColaboradores}
               />
             ),
+          },
+          {
+            key: 'perifericos',
+            label: <span><InboxOutlined style={{ marginRight: 6 }} />Periféricos activos</span>,
+            children: <TabPerifericosActivos colaboradores={colaboradores} />,
           },
         ]}
       />

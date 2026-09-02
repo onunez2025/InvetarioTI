@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Tabs, Spin, Tag, Table, message } from 'antd';
+import { Tabs, Spin, Tag, Table, message, Popconfirm } from 'antd';
 import {
   ArrowLeftOutlined, UserOutlined, LaptopOutlined, HistoryOutlined,
 } from '@ant-design/icons';
@@ -8,6 +8,8 @@ import dayjs from 'dayjs';
 import type { ColumnsType } from 'antd/es/table';
 import { colaboradoresService, asignacionesService } from '../services/asignaciones.service';
 import type { Colaborador, Asignacion } from '../types/asignacion.types';
+import { stockAsignacionesService } from '../services/stockAsignaciones.service';
+import type { StockAsignacion } from '../types/stock-asignacion.types';
 
 function fmtDate(s?: string | null) {
   if (!s) return '—';
@@ -64,6 +66,8 @@ function TabEquiposActuales({ colaboradorId }: { colaboradorId: number }) {
   const navigate = useNavigate();
   const [asignaciones, setAsignaciones] = useState<Asignacion[]>([]);
   const [loading, setLoading] = useState(true);
+  const [perifericos, setPerifericos] = useState<StockAsignacion[]>([]);
+  const [loadingPeri, setLoadingPeri] = useState(false);
 
   useEffect(() => {
     asignacionesService.findByColaborador(colaboradorId)
@@ -72,19 +76,17 @@ function TabEquiposActuales({ colaboradorId }: { colaboradorId: number }) {
       .finally(() => setLoading(false));
   }, [colaboradorId]);
 
+  useEffect(() => {
+    setLoadingPeri(true);
+    stockAsignacionesService.porColaborador(colaboradorId, true)
+      .then(setPerifericos)
+      .catch(() => {})
+      .finally(() => setLoadingPeri(false));
+  }, [colaboradorId]);
+
   if (loading) return <div style={{ padding: 40, textAlign: 'center' }}><Spin /></div>;
 
-  if (asignaciones.length === 0) {
-    return (
-      <div style={{ textAlign: 'center', padding: 60, color: '#64748b' }}>
-        <LaptopOutlined style={{ fontSize: 48, color: '#94a3b8', marginBottom: 16, display: 'block' }} />
-        <div style={{ fontSize: 15, fontWeight: 600, color: '#0f172a', marginBottom: 8 }}>Sin equipos asignados</div>
-        <div style={{ fontSize: 13 }}>Este colaborador no tiene equipos activos actualmente.</div>
-      </div>
-    );
-  }
-
-  const columns: ColumnsType<Asignacion> = [
+  const equipoColumns: ColumnsType<Asignacion> = [
     {
       title: 'Equipo',
       key: 'equipo',
@@ -124,15 +126,94 @@ function TabEquiposActuales({ colaboradorId }: { colaboradorId: number }) {
   ];
 
   return (
-    <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #e2e8f0', overflow: 'hidden' }}>
-      <Table<Asignacion>
-        dataSource={asignaciones}
-        columns={columns}
-        rowKey="id"
-        size="small"
-        pagination={false}
-        locale={{ emptyText: 'Sin equipos activos' }}
-      />
+    <div>
+      {asignaciones.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: 60, color: '#64748b' }}>
+          <LaptopOutlined style={{ fontSize: 48, color: '#94a3b8', marginBottom: 16, display: 'block' }} />
+          <div style={{ fontSize: 15, fontWeight: 600, color: '#0f172a', marginBottom: 8 }}>Sin equipos asignados</div>
+          <div style={{ fontSize: 13 }}>Este colaborador no tiene equipos activos actualmente.</div>
+        </div>
+      ) : (
+        <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #e2e8f0', overflow: 'hidden' }}>
+          <Table<Asignacion>
+            dataSource={asignaciones}
+            columns={equipoColumns}
+            rowKey="id"
+            size="small"
+            pagination={false}
+            locale={{ emptyText: 'Sin equipos activos' }}
+          />
+        </div>
+      )}
+
+      {/* ── Periféricos ── */}
+      <div style={{ marginTop: 24 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 12 }}>
+          Periféricos asignados
+        </div>
+        {loadingPeri ? (
+          <div style={{ textAlign: 'center', padding: 24 }}><Spin size="small" /></div>
+        ) : perifericos.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: 32, color: '#94a3b8', fontSize: 13 }}>
+            Sin periféricos asignados
+          </div>
+        ) : (
+          <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #e2e8f0', overflow: 'hidden' }}>
+            <Table<StockAsignacion>
+              dataSource={perifericos}
+              rowKey="id"
+              size="small"
+              pagination={false}
+              locale={{ emptyText: 'Sin periféricos' }}
+              columns={[
+                {
+                  title: 'Modelo', key: 'modelo',
+                  render: (_, r) => (
+                    <div>
+                      <div style={{ fontWeight: 600, fontSize: 13 }}>{r.modelo?.nombre ?? `ID ${r.modeloId}`}</div>
+                      <div style={{ fontSize: 11, color: '#94a3b8' }}>{r.modelo?.codigo}</div>
+                    </div>
+                  ),
+                },
+                { title: 'Tipo', key: 'tipo', render: (_, r) => r.modelo?.tipo ? <Tag style={{ fontSize: 11 }}>{r.modelo.tipo}</Tag> : '—' },
+                { title: 'Cantidad', dataIndex: 'cantidad', align: 'right', render: (v) => <span style={{ fontWeight: 700 }}>{v}</span> },
+                { title: 'Desde', dataIndex: 'fechaInicio', render: (v) => <span style={{ fontSize: 12, color: '#64748b' }}>{fmtDate(v)}</span> },
+                {
+                  title: 'Días', key: 'dias',
+                  render: (_, r) => {
+                    const dias = dayjs().diff(dayjs(r.fechaInicio), 'day');
+                    const color = dias > 365 ? '#dc2626' : dias > 180 ? '#d97706' : '#16a34a';
+                    return <span style={{ fontSize: 12, color, fontWeight: 600 }}>{dias}d</span>;
+                  },
+                },
+                {
+                  title: '', key: 'devolver',
+                  render: (_, r) => (
+                    <Popconfirm
+                      title="¿Devolver este periférico?"
+                      onConfirm={async () => {
+                        try {
+                          await stockAsignacionesService.devolver(r.id, dayjs().format('YYYY-MM-DD'));
+                          message.success('Periférico devuelto');
+                          stockAsignacionesService.porColaborador(colaboradorId, true).then(setPerifericos).catch(() => {});
+                        } catch { message.error('Error al devolver'); }
+                      }}
+                      okText="Devolver" cancelText="Cancelar"
+                    >
+                      <button style={{
+                        border: '1.5px solid #e2e8f0', borderRadius: 6, background: '#fff',
+                        cursor: 'pointer', color: '#64748b', padding: '3px 10px', fontSize: 12,
+                      }}>
+                        Devolver
+                      </button>
+                    </Popconfirm>
+                  ),
+                },
+              ]}
+            />
+          </div>
+        )}
+      </div>
     </div>
   );
 }

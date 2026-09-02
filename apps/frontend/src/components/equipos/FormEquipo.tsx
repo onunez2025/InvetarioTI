@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useRef } from 'react';
-import { Modal, Form, Input, Select, DatePicker, Row, Col, message } from 'antd';
-import dayjs from 'dayjs';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Modal, Form, Input, Select, Row, Col, message, Spin } from 'antd';
 import type { Equipo, CreateEquipoPayload, UpdateEquipoPayload } from '../../types/equipo.types';
 import { equiposService } from '../../services/equipos.service';
+import { modelosService } from '../../services/modelos.service';
 import { useCatalogosStore } from '../../store/catalogosStore';
+import type { Modelo } from '../../types/modelo.types';
 
 const { Option } = Select;
 
@@ -22,44 +23,54 @@ interface Props {
 export default function FormEquipo({ abierto, equipo, onCerrar, onGuardado }: Props) {
   const [form] = Form.useForm();
   const esEdicion = equipo !== null;
-  const isInit = useRef(true); // evita resets durante carga inicial del form
+  const isInit = useRef(true);
+
+  /* ---- modelos ---- */
+  const [modelos, setModelos] = useState<Modelo[]>([]);
+  const [cargandoModelos, setCargandoModelos] = useState(false);
+  const [modeloSeleccionado, setModeloSeleccionado] = useState<Modelo | null>(null);
+
+  useEffect(() => {
+    if (abierto) {
+      setCargandoModelos(true);
+      modelosService.listar({ tieneSerie: true, activo: true })
+        .then(r => setModelos(r.data))
+        .catch(() => {})
+        .finally(() => setCargandoModelos(false));
+    }
+  }, [abierto]);
 
   /* ---- catálogos ---- */
   const { cargar, getOptions, getItems, getChildren, cargado } = useCatalogosStore();
   useEffect(() => { cargar(); }, [cargar]);
 
   const empresas = getOptions('empresa');
-  const tipos    = getOptions('tipo_equipo');
-  const marcas   = getOptions('marca');
   const cecos    = getOptions('ceco');
 
   /* Cascada: gerencia → departamento → ubicación */
-  const gerenciaWatch    = Form.useWatch('gerencia', form);
+  const gerenciaWatch     = Form.useWatch('gerencia', form);
   const departamentoWatch = Form.useWatch('departamento', form);
 
-  // ID del catálogo gerencia seleccionado
   const gerenciaId = useMemo(() => {
     if (!gerenciaWatch) return undefined;
-    return getItems('gerencia').find(g => g.nombre === gerenciaWatch)?.id;
+    return getItems('gerencia').find((g: { id: number; nombre: string }) => g.nombre === gerenciaWatch)?.id;
   }, [gerenciaWatch, getItems]);
 
-  // ID del catálogo departamento seleccionado
   const deptoId = useMemo(() => {
     if (!departamentoWatch) return undefined;
-    return getItems('departamento').find(d => d.nombre === departamentoWatch)?.id;
+    return getItems('departamento').find((d: { id: number; nombre: string }) => d.nombre === departamentoWatch)?.id;
   }, [departamentoWatch, getItems]);
 
-  // Opciones filtradas
   const deptosFiltrados = useMemo(() => {
     if (!gerenciaId) return getItems('departamento');
     const hijos = getChildren('departamento', gerenciaId);
-    return hijos.length > 0 ? hijos : getItems('departamento'); // fallback si sin asignar
+    return hijos.length > 0 ? hijos : getItems('departamento');
   }, [gerenciaId, getItems, getChildren]);
 
   const ubicsFiltradas = useMemo(() => {
     if (!deptoId) return getItems('ubicacion');
     const hijos = getChildren('ubicacion', deptoId);
-    return hijos.length > 0 ? hijos : getItems('ubicacion'); // fallback
+    return hijos.length > 0 ? hijos : getItems('ubicacion');
   }, [deptoId, getItems, getChildren]);
 
   /* ---- poblar formulario ---- */
@@ -68,21 +79,28 @@ export default function FormEquipo({ abierto, equipo, onCerrar, onGuardado }: Pr
       isInit.current = true;
       if (equipo) {
         form.setFieldsValue({
-          ...equipo,
-          endOfSale:    equipo.modelo?.endOfSale    ? dayjs(equipo.modelo.endOfSale)    : null,
-          endOfSupport: equipo.modelo?.endOfSupport ? dayjs(equipo.modelo.endOfSupport) : null,
+          modeloId: equipo.modeloId,
+          nombre: equipo.nombre,
+          empresa: equipo.empresa,
+          serie: equipo.serie,
+          codigo: equipo.codigo,
+          estado: equipo.estado,
+          gerencia: equipo.gerencia,
+          departamento: equipo.departamento,
+          ubicacion: equipo.ubicacion,
+          ceco: equipo.ceco,
         });
+        setModeloSeleccionado(equipo.modelo ?? null);
       } else {
         form.resetFields();
+        setModeloSeleccionado(null);
         form.setFieldValue('empresa', empresas[0] ?? 'MT INDUSTRIAL');
         form.setFieldValue('estado', 'ACTIVO');
       }
-      // permitir cascada después de que Form.useWatch se establezca
       requestAnimationFrame(() => { isInit.current = false; });
     }
   }, [abierto, equipo, form, empresas]);
 
-  // Cuando cambia gerencia → reset departamento y ubicación (solo en interacción del usuario)
   const prevGerencia = useRef<string | undefined>();
   useEffect(() => {
     if (isInit.current) { prevGerencia.current = gerenciaWatch; return; }
@@ -93,7 +111,6 @@ export default function FormEquipo({ abierto, equipo, onCerrar, onGuardado }: Pr
     prevGerencia.current = gerenciaWatch;
   }, [gerenciaWatch, form]);
 
-  // Cuando cambia departamento → reset ubicación
   const prevDepto = useRef<string | undefined>();
   useEffect(() => {
     if (isInit.current) { prevDepto.current = departamentoWatch; return; }
@@ -105,9 +122,16 @@ export default function FormEquipo({ abierto, equipo, onCerrar, onGuardado }: Pr
 
   const onFinish = async (valores: Record<string, unknown>) => {
     const payload = {
-      ...valores,
-      endOfSale:    valores.endOfSale    ? (valores.endOfSale    as dayjs.Dayjs).format('YYYY-MM-DD') : undefined,
-      endOfSupport: valores.endOfSupport ? (valores.endOfSupport as dayjs.Dayjs).format('YYYY-MM-DD') : undefined,
+      modeloId: valores.modeloId,
+      nombre: valores.nombre,
+      empresa: valores.empresa,
+      serie: valores.serie,
+      codigo: valores.codigo,
+      estado: valores.estado,
+      gerencia: valores.gerencia,
+      departamento: valores.departamento,
+      ubicacion: valores.ubicacion,
+      ceco: valores.ceco,
     } as CreateEquipoPayload | UpdateEquipoPayload;
 
     try {
@@ -125,13 +149,8 @@ export default function FormEquipo({ abierto, equipo, onCerrar, onGuardado }: Pr
     }
   };
 
-  /** Select con búsqueda y opciones de catálogo.
-   *  Si el item tiene `extra` (ej. gerencia con descripción) lo muestra como "CÓDIGO — Descripción"
-   *  pero guarda solo el `nombre` como valor del campo. */
   function CatSelect({
-    options,
-    placeholder,
-    hint,
+    options, placeholder, hint,
   }: {
     options: Array<{ id: number; nombre: string; extra?: string }> | string[];
     placeholder?: string;
@@ -144,14 +163,10 @@ export default function FormEquipo({ abierto, equipo, onCerrar, onGuardado }: Pr
 
     return (
       <Select
-        showSearch
-        allowClear
+        showSearch allowClear
         placeholder={!cargado ? 'Cargando...' : (hint ?? placeholder ?? 'Seleccionar')}
         loading={!cargado}
-        filterOption={(input, opt) => {
-          const label = String(opt?.label ?? opt?.value ?? '').toLowerCase();
-          return label.includes(input.toLowerCase());
-        }}
+        filterOption={(input, opt) => String(opt?.label ?? opt?.value ?? '').toLowerCase().includes(input.toLowerCase())}
         optionFilterProp="label"
       >
         {items.map(o => {
@@ -159,11 +174,7 @@ export default function FormEquipo({ abierto, equipo, onCerrar, onGuardado }: Pr
           return (
             <Option key={o.nombre} value={o.nombre} label={label}>
               <span style={{ fontWeight: 600 }}>{o.nombre}</span>
-              {o.extra && (
-                <span style={{ color: '#64748b', fontSize: 11, marginLeft: 6 }}>
-                  {o.extra}
-                </span>
-              )}
+              {o.extra && <span style={{ color: '#64748b', fontSize: 11, marginLeft: 6 }}>{o.extra}</span>}
             </Option>
           );
         })}
@@ -171,12 +182,8 @@ export default function FormEquipo({ abierto, equipo, onCerrar, onGuardado }: Pr
     );
   }
 
-  const deptoHint = gerenciaWatch
-    ? `Departamentos de ${gerenciaWatch} (${deptosFiltrados.length})`
-    : 'Seleccionar departamento';
-  const ubicHint = departamentoWatch
-    ? `Ubicaciones de ${departamentoWatch} (${ubicsFiltradas.length})`
-    : 'Seleccionar ubicación';
+  const deptoHint = gerenciaWatch ? `Departamentos de ${gerenciaWatch} (${deptosFiltrados.length})` : 'Seleccionar departamento';
+  const ubicHint  = departamentoWatch ? `Ubicaciones de ${departamentoWatch} (${ubicsFiltradas.length})` : 'Seleccionar ubicación';
 
   return (
     <Modal
@@ -202,8 +209,46 @@ export default function FormEquipo({ abierto, equipo, onCerrar, onGuardado }: Pr
     >
       <Form form={form} layout="vertical" onFinish={onFinish} size="small">
 
-        {/* ── Identificación ── */}
-        <Section label="Identificación">
+        {/* ── Modelo ── */}
+        <Section label="Selección de modelo">
+          <Form.Item name="modeloId" label="Modelo" rules={[{ required: true, message: 'Selecciona un modelo' }]}>
+            <Select
+              showSearch
+              loading={cargandoModelos}
+              placeholder={cargandoModelos ? <span><Spin size="small" style={{ marginRight: 6 }} />Cargando modelos...</span> : 'Buscar modelo por código o nombre...'}
+              filterOption={(input, opt) => String(opt?.label ?? '').toLowerCase().includes(input.toLowerCase())}
+              onChange={(val: number) => {
+                const m = modelos.find(x => x.id === val) ?? null;
+                setModeloSeleccionado(m);
+              }}
+            >
+              {modelos.map(m => (
+                <Option key={m.id} value={m.id} label={`${m.codigo} — ${m.nombre}${m.marca ? ` (${m.marca})` : ''}`}>
+                  <div>
+                    <span style={{ fontWeight: 600 }}>{m.codigo}</span>
+                    <span style={{ color: '#64748b', marginLeft: 6 }}>{m.nombre}</span>
+                    {m.marca && <span style={{ color: '#94a3b8', marginLeft: 6, fontSize: 11 }}>({m.marca})</span>}
+                  </div>
+                </Option>
+              ))}
+            </Select>
+          </Form.Item>
+
+          {modeloSeleccionado && (
+            <div style={{
+              background: '#eff6ff', borderRadius: 8, padding: '10px 14px',
+              marginTop: -8, marginBottom: 8, fontSize: 12, color: '#1e40af',
+              display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '6px 16px',
+            }}>
+              <div><span style={{ color: '#64748b' }}>Tipo: </span><b>{modeloSeleccionado.tipo ?? '—'}</b></div>
+              <div><span style={{ color: '#64748b' }}>Marca: </span><b>{modeloSeleccionado.marca ?? '—'}</b></div>
+              <div><span style={{ color: '#64748b' }}>End of Support: </span><b>{modeloSeleccionado.endOfSupport ?? '—'}</b></div>
+            </div>
+          )}
+        </Section>
+
+        {/* ── Datos físicos ── */}
+        <Section label="Datos físicos de la unidad">
           <Row gutter={14}>
             <Col span={12}>
               <Form.Item name="empresa" label="Empresa" rules={[{ required: true }]}>
@@ -211,31 +256,10 @@ export default function FormEquipo({ abierto, equipo, onCerrar, onGuardado }: Pr
               </Form.Item>
             </Col>
             <Col span={12}>
-              <Form.Item name="nombre" label="Nombre del dispositivo" rules={[{ required: true }]}>
-                <Input placeholder="Ej: LAPTOP-DELL-001" />
+              <Form.Item name="nombre" label="Nombre del dispositivo">
+                <Input placeholder="Ej: LAPTOP-DELL-001 (opcional si viene de compra)" />
               </Form.Item>
             </Col>
-            <Col span={8}>
-              <Form.Item name="tipo" label="Tipo">
-                <CatSelect options={tipos} />
-              </Form.Item>
-            </Col>
-            <Col span={8}>
-              <Form.Item name="marca" label="Marca">
-                <CatSelect options={marcas} />
-              </Form.Item>
-            </Col>
-            <Col span={8}>
-              <Form.Item name="modelo" label="Modelo">
-                <Input placeholder="Ej: Latitude 5520" />
-              </Form.Item>
-            </Col>
-          </Row>
-        </Section>
-
-        {/* ── Inventario ── */}
-        <Section label="Inventario">
-          <Row gutter={14}>
             <Col span={8}>
               <Form.Item name="serie" label="Número de serie">
                 <Input placeholder="S/N" />
@@ -259,16 +283,6 @@ export default function FormEquipo({ abierto, equipo, onCerrar, onGuardado }: Pr
                     </Option>
                   ))}
                 </Select>
-              </Form.Item>
-            </Col>
-            <Col span={8}>
-              <Form.Item name="firmware" label="Firmware">
-                <Input placeholder="Versión firmware" />
-              </Form.Item>
-            </Col>
-            <Col span={8}>
-              <Form.Item name="version" label="Versión OS / SW">
-                <Input placeholder="Ej: Windows 11" />
               </Form.Item>
             </Col>
             <Col span={8}>
@@ -305,9 +319,7 @@ export default function FormEquipo({ abierto, equipo, onCerrar, onGuardado }: Pr
                 <span>
                   Departamento
                   {gerenciaWatch && gerenciaId && (
-                    <span style={{ color: '#2563eb', fontSize: 11, marginLeft: 6 }}>
-                      ↳ {deptosFiltrados.length} opciones
-                    </span>
+                    <span style={{ color: '#2563eb', fontSize: 11, marginLeft: 6 }}>↳ {deptosFiltrados.length} opciones</span>
                   )}
                 </span>
               }>
@@ -319,29 +331,11 @@ export default function FormEquipo({ abierto, equipo, onCerrar, onGuardado }: Pr
                 <span>
                   Ubicación
                   {departamentoWatch && deptoId && (
-                    <span style={{ color: '#2563eb', fontSize: 11, marginLeft: 6 }}>
-                      ↳ {ubicsFiltradas.length} opciones
-                    </span>
+                    <span style={{ color: '#2563eb', fontSize: 11, marginLeft: 6 }}>↳ {ubicsFiltradas.length} opciones</span>
                   )}
                 </span>
               }>
                 <CatSelect options={ubicsFiltradas} hint={ubicHint} />
-              </Form.Item>
-            </Col>
-          </Row>
-        </Section>
-
-        {/* ── Ciclo de vida ── */}
-        <Section label="Ciclo de vida">
-          <Row gutter={14}>
-            <Col span={12}>
-              <Form.Item name="endOfSale" label="End of Sale">
-                <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" placeholder="Fecha fin de venta" />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item name="endOfSupport" label="End of Support">
-                <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" placeholder="Fecha fin de soporte" />
               </Form.Item>
             </Col>
           </Row>
@@ -352,7 +346,6 @@ export default function FormEquipo({ abierto, equipo, onCerrar, onGuardado }: Pr
   );
 }
 
-/** Contenedor de sección con etiqueta */
 function Section({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div style={{ background: '#f8fafc', borderRadius: 8, padding: '10px 14px', marginBottom: 14 }}>
