@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Upload, Modal, message, Button } from 'antd';
+import { Upload, Modal, message, Button, Alert, Select } from 'antd';
 import {
   PlusOutlined,
   UploadOutlined,
@@ -32,6 +32,9 @@ export default function EquiposPage() {
   const [formAbierto, setFormAbierto]   = useState(false);
   const [equipoEditar, setEquipoEditar] = useState<Equipo | null>(null);
   const [importando, setImportando]     = useState(false);
+  const [selectedKeys, setSelectedKeys] = useState<number[]>([]);
+  const [bulkEstado, setBulkEstado]     = useState<string | null>(null);
+  const [aplicandoBulk, setAplicandoBulk] = useState(false);
 
   useEffect(() => { cargar(); }, []);
 
@@ -199,6 +202,59 @@ export default function EquiposPage() {
         </div>
       </div>
 
+      {/* ---- Toolbar contextual para acciones en lote ---- */}
+      {selectedKeys.length > 0 && (
+        <Alert
+          message={
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              <span>
+                <b>{selectedKeys.length}</b> equipo{selectedKeys.length !== 1 ? 's' : ''} seleccionado{selectedKeys.length !== 1 ? 's' : ''}
+              </span>
+              <Select
+                placeholder="Cambiar estado"
+                style={{ width: 170 }}
+                value={bulkEstado ?? undefined}
+                onChange={setBulkEstado}
+                options={['ACTIVO', 'MANTENIMIENTO', 'BAJA', 'INACTIVO'].map((e) => ({
+                  value: e,
+                  label: e,
+                }))}
+              />
+              <Button
+                type="primary"
+                size="small"
+                disabled={!bulkEstado}
+                loading={aplicandoBulk}
+                onClick={async () => {
+                  setAplicandoBulk(true);
+                  try {
+                    await api.patch('/api/equipos/bulk', {
+                      ids: selectedKeys,
+                      estado: bulkEstado,
+                    });
+                    setSelectedKeys([]);
+                    setBulkEstado(null);
+                    cargar();
+                    message.success('Estado actualizado en lote correctamente');
+                  } catch {
+                    message.error('Error al actualizar equipos en lote');
+                  } finally {
+                    setAplicandoBulk(false);
+                  }
+                }}
+              >
+                Aplicar
+              </Button>
+              <Button size="small" onClick={() => setSelectedKeys([])}>
+                Cancelar
+              </Button>
+            </div>
+          }
+          type="info"
+          style={{ marginBottom: 16 }}
+        />
+      )}
+
       {/* ---- Table ---- */}
       <TablaEquipos
         equipos={equipos}
@@ -210,6 +266,8 @@ export default function EquiposPage() {
         onEditar={abrirEditar}
         onEliminar={darDeBaja}
         onRecargar={cargar}
+        selectedKeys={selectedKeys}
+        onSelectChange={setSelectedKeys}
       />
 
       {/* ---- Form modal ---- */}

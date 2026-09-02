@@ -81,11 +81,14 @@ interface Props {
   onEditar: (equipo: Equipo) => void;
   onEliminar: (id: number) => void;
   onRecargar: () => void;
+  selectedKeys?: number[];
+  onSelectChange?: (keys: number[]) => void;
 }
 
 export default function TablaEquipos({
   equipos, total, cargando, filtros, rolUsuario,
   onFiltrar, onEditar, onEliminar, onRecargar,
+  selectedKeys, onSelectChange,
 }: Props) {
   const navigate = useNavigate();
   const puedeEditar   = ['ADMIN', 'GERENTE', 'TECNICO'].includes(rolUsuario);
@@ -326,6 +329,14 @@ export default function TablaEquipos({
         dataSource={equipos}
         rowKey="id"
         loading={cargando}
+        rowSelection={
+          onSelectChange
+            ? {
+                selectedRowKeys: selectedKeys ?? [],
+                onChange: (keys) => onSelectChange(keys as number[]),
+              }
+            : undefined
+        }
         scroll={{ x: 1100 }}
         size="small"
         style={{ borderRadius: '0 0 12px 12px' }}

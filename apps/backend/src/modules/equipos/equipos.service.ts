@@ -1,6 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, DataSource } from 'typeorm';
+import * as QRCode from 'qrcode';
+import PDFDocument from 'pdfkit';
 import { Equipo } from './entities/equipo.entity';
 import { CreateEquipoDto } from './dto/create-equipo.dto';
 import { UpdateEquipoDto } from './dto/update-equipo.dto';
@@ -13,6 +15,7 @@ export class EquiposService {
     @InjectRepository(Equipo)
     private readonly equipoRepo: Repository<Equipo>,
     private readonly auditoriaService: AuditoriaService,
+    private readonly dataSource: DataSource,
   ) {}
 
   async findAll(
@@ -64,5 +67,36 @@ export class EquiposService {
     const equipo = await this.findOne(id);
     equipo.estado = 'BAJA';
     await this.equipoRepo.save(equipo);
+  }
+
+  async bulkUpdateEstado(ids: number[], estado: string): Promise<{ updated: number }> {
+    if (ids.length === 0) return { updated: 0 };
+    const placeholders = ids.map((_, i) => `@${i + 1}`).join(',');
+    await this.dataSource.query(
+      `UPDATE inventario_ti.equipos SET estado=@0 WHERE id IN (${placeholders})`,
+      [estado, ...ids],
+    );
+    return { updated: ids.length };
+  }
+
+  async generarQrLabel(id: number): Promise<Buffer> {
+    const equipo = await this.findOne(id);
+    const url = `https://gac-sole-inventario-ti.jppsfv.easypanel.host/equipos/${id}`;
+    const qrDataUrl: string = await QRCode.toDataURL(url);
+    const qrBuffer = Buffer.from(qrDataUrl.split(',')[1], 'base64');
+    const doc = new PDFDocument({ size: [200, 130], margin: 8 });
+    const chunks: Buffer[] = [];
+    doc.on('data', (c: Buffer) => chunks.push(c));
+    return new Promise((resolve) => {
+      doc.on('end', () => resolve(Buffer.concat(chunks)));
+      doc.font('Helvetica-Bold').fontSize(9).text('MT INDUSTRIAL S.A.C', { align: 'center' });
+      doc.font('Helvetica').fontSize(8).text(equipo.nombre ?? 'Sin nombre', { align: 'center' });
+      doc.fontSize(7).text(equipo.serie ?? equipo.codigo ?? '', { align: 'center' });
+      doc.moveDown(0.3);
+      const qrSize = 70;
+      const x = (200 - qrSize) / 2;
+      doc.image(qrBuffer, x, doc.y, { width: qrSize, height: qrSize });
+      doc.end();
+    });
   }
 }
