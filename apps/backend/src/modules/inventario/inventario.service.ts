@@ -21,8 +21,8 @@ export class InventarioService {
     const rows = await this.em.query(`
       SELECT
         m.id           AS modeloId,
-        m.codigo,
-        m.nombre,
+        m.codigo       AS modeloCodigo,
+        m.nombre       AS modeloNombre,
         m.marca,
         m.tipo,
         ISNULL(SUM(cd.cantidad), 0)  AS totalIngresado,
@@ -46,8 +46,8 @@ export class InventarioService {
   async resumenPorModelo(): Promise<any[]> {
     return this.em.query(`
       SELECT
-        m.id AS modeloId, m.codigo, m.nombre, m.marca, m.tipo,
-        COUNT(e.id)                                              AS totalUnidades,
+        m.id AS modeloId, m.codigo AS modeloCodigo, m.nombre AS modeloNombre, m.marca, m.tipo,
+        COUNT(e.id)                                              AS total,
         SUM(CASE WHEN e.estado = 'ACTIVO' THEN 1 ELSE 0 END)   AS activos,
         SUM(CASE WHEN e.estado = 'BAJA' THEN 1 ELSE 0 END)     AS bajas,
         SUM(CASE WHEN a.id IS NOT NULL THEN 1 ELSE 0 END)       AS asignados,

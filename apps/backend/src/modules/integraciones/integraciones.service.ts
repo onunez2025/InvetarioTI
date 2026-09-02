@@ -1,6 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import * as XLSX from 'xlsx';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { EquiposService } from '../equipos/equipos.service';
+import { Modelo } from '../modelos/entities/modelo.entity';
 
 const COLUMNAS_PLANTILLA = [
   'EMPRESA', 'NOMBRE DISPOSITIVO', 'TIPO', 'MARCA', 'MODELO',
@@ -74,7 +77,10 @@ export interface ResultadoImportacion {
 export class IntegracionesService {
   private readonly logger = new Logger(IntegracionesService.name);
 
-  constructor(private readonly equiposService: EquiposService) {}
+  constructor(
+    private readonly equiposService: EquiposService,
+    @InjectRepository(Modelo) private readonly modeloRepo: Repository<Modelo>,
+  ) {}
 
   generarPlantilla(): Buffer {
     const wb = XLSX.utils.book_new();
@@ -111,8 +117,25 @@ export class IntegracionesService {
       if (!nombre) continue; // saltar filas vacías
 
       try {
+        const tipo  = fila.TIPO?.trim();
+        const marca = fila.MARCA?.trim();
+        const modeloNombre = fila.MODELO?.trim();
+
+        const modelo = await this.modeloRepo.findOne({
+          where: { tipo, marca, nombre: modeloNombre },
+        });
+
+        if (!modelo) {
+          errores++;
+          const msg = `Modelo no encontrado para "${nombre}": ${tipo ?? ''}/${marca ?? ''}/${modeloNombre ?? ''}`;
+          detalles.push(msg);
+          this.logger.warn(msg);
+          continue;
+        }
+
         await this.equiposService.create(
           {
+            modeloId: modelo.id,
             empresa: fila.EMPRESA ?? 'MT INDUSTRIAL',
             nombre,
             gerencia: fila.GERENCIA,
@@ -121,7 +144,7 @@ export class IntegracionesService {
             ceco: fila.CECO,
             ubicacion: fila['UBICACIÓN'],
             serie: fila.SERIE,
-          },
+          } as any,
           usuarioId,
         );
         importados++;

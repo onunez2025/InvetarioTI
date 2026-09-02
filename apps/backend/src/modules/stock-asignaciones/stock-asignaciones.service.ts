@@ -3,12 +3,15 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, IsNull } from 'typeorm';
 import { StockAsignacion } from './entities/stock-asignacion.entity';
 import { CreateStockAsignacionDto } from './dto/create-stock-asignacion.dto';
+import { Modelo } from '../modelos/entities/modelo.entity';
 
 @Injectable()
 export class StockAsignacionesService {
   constructor(
     @InjectRepository(StockAsignacion)
     private readonly repo: Repository<StockAsignacion>,
+    @InjectRepository(Modelo)
+    private readonly modeloRepo: Repository<Modelo>,
   ) {}
 
   async findByColaborador(colaboradorId: number, soloActivas = false): Promise<StockAsignacion[]> {
@@ -34,6 +37,12 @@ export class StockAsignacionesService {
   }
 
   async create(dto: CreateStockAsignacionDto, usuarioId: number): Promise<StockAsignacion> {
+    const modelo = await this.modeloRepo.findOne({ where: { id: dto.modeloId } });
+    if (!modelo) throw new NotFoundException(`Modelo ${dto.modeloId} no encontrado`);
+    if (modelo.tieneSerie) {
+      throw new BadRequestException('Este modelo es serializado — use el flujo de equipos para asignarlo');
+    }
+
     const { asignado } = await this.calcularDisponible(dto.modeloId);
 
     const { sum: totalIngresado } = await this.repo.manager

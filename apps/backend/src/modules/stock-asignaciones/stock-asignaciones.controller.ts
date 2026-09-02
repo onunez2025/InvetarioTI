@@ -4,6 +4,7 @@ import {
 } from '@nestjs/common';
 import { StockAsignacionesService } from './stock-asignaciones.service';
 import { CreateStockAsignacionDto } from './dto/create-stock-asignacion.dto';
+import { DevolverStockAsignacionDto } from './dto/devolver-stock-asignacion.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard, Roles } from '../auth/roles.guard';
 
@@ -31,8 +32,8 @@ export class StockAsignacionesController {
   @Roles('ADMIN', 'TECNICO')
   devolver(
     @Param('id', ParseIntPipe) id: number,
-    @Body('fechaFin') fechaFin: string,
+    @Body() dto: DevolverStockAsignacionDto,
   ) {
-    return this.svc.devolver(id, fechaFin);
+    return this.svc.devolver(id, dto.fechaFin);
   }
 }

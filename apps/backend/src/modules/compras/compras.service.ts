@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, DataSource } from 'typeorm';
 import { Compra } from './entities/compra.entity';
 import { CompraDetalle } from './entities/compra-detalle.entity';
 import { Equipo } from '../equipos/entities/equipo.entity';
@@ -15,6 +15,7 @@ export class ComprasService {
     @InjectRepository(CompraDetalle) private readonly detalleRepo: Repository<CompraDetalle>,
     @InjectRepository(Equipo)        private readonly equipoRepo: Repository<Equipo>,
     @InjectRepository(Modelo)        private readonly modeloRepo: Repository<Modelo>,
+    private readonly dataSource: DataSource,
   ) {}
 
   async findAll(page = 1, limit = 20): Promise<{ data: Compra[]; total: number }> {
@@ -77,6 +78,15 @@ export class ComprasService {
       );
     }
 
+    const yaRegistradas = await this.equipoRepo.count({
+      where: { compraDetalleId: detalleId },
+    });
+    if (yaRegistradas + dto.series.length > detalle.cantidad) {
+      throw new BadRequestException(
+        `Solo se pueden registrar ${detalle.cantidad - yaRegistradas} unidades adicionales (ya hay ${yaRegistradas} registradas de ${detalle.cantidad})`,
+      );
+    }
+
     const unique = new Set(dto.series);
     if (unique.size !== dto.series.length) {
       throw new BadRequestException('La lista contiene números de serie duplicados');
@@ -95,7 +105,10 @@ export class ComprasService {
     }));
 
     try {
-      return await this.equipoRepo.save(equipos);
+      await this.dataSource.transaction(async (manager) => {
+        await manager.save(Equipo, equipos);
+      });
+      return equipos;
     } catch (err: any) {
       if (err?.message?.includes('UQ') || err?.number === 2627) {
         throw new BadRequestException('Uno o más números de serie ya existen en el sistema');

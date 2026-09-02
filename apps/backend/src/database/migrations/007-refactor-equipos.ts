@@ -13,6 +13,10 @@ export class RefactorEquipos1007 implements MigrationInterface {
     // Eliminar columnas de catálogo (tabla vacía, sin riesgo de datos)
     // Azure SQL: verificar existencia antes de eliminar (drop default constraints implícitos primero)
     await queryRunner.query(`
+      IF EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('inventario_ti.equipos') AND name = 'IX_equipos_tipo')
+        DROP INDEX IX_equipos_tipo ON inventario_ti.equipos
+    `);
+    await queryRunner.query(`
       IF EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('inventario_ti.equipos') AND name = 'tipo')
         ALTER TABLE inventario_ti.equipos DROP COLUMN tipo
     `);
@@ -37,6 +41,10 @@ export class RefactorEquipos1007 implements MigrationInterface {
         ALTER TABLE inventario_ti.equipos DROP COLUMN end_of_sale
     `);
     await queryRunner.query(`
+      IF EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('inventario_ti.equipos') AND name = 'IX_equipos_end_of_support')
+        DROP INDEX IX_equipos_end_of_support ON inventario_ti.equipos
+    `);
+    await queryRunner.query(`
       IF EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('inventario_ti.equipos') AND name = 'end_of_support')
         ALTER TABLE inventario_ti.equipos DROP COLUMN end_of_support
     `);
@@ -49,8 +57,18 @@ export class RefactorEquipos1007 implements MigrationInterface {
         DROP INDEX IX_equipos_modelo ON inventario_ti.equipos
     `);
     await queryRunner.query(`
+      DECLARE @fk NVARCHAR(200);
+      SELECT @fk = name FROM sys.foreign_keys WHERE parent_object_id = OBJECT_ID('inventario_ti.equipos') AND name LIKE '%modelo_id%';
+      IF @fk IS NOT NULL EXEC('ALTER TABLE inventario_ti.equipos DROP CONSTRAINT [' + @fk + ']');
+    `);
+    await queryRunner.query(`
       IF EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('inventario_ti.equipos') AND name = 'modelo_id')
         ALTER TABLE inventario_ti.equipos DROP COLUMN modelo_id
+    `);
+    await queryRunner.query(`
+      DECLARE @fk2 NVARCHAR(200);
+      SELECT @fk2 = name FROM sys.foreign_keys WHERE parent_object_id = OBJECT_ID('inventario_ti.equipos') AND name LIKE '%compra_detalle_id%';
+      IF @fk2 IS NOT NULL EXEC('ALTER TABLE inventario_ti.equipos DROP CONSTRAINT [' + @fk2 + ']');
     `);
     await queryRunner.query(`
       IF EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('inventario_ti.equipos') AND name = 'compra_detalle_id')
