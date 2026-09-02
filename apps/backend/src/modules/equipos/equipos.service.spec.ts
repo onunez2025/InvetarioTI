@@ -14,8 +14,20 @@ const mockEquipo: Partial<Equipo> = {
 
 describe('EquiposService', () => {
   let service: EquiposService;
+
+  // QueryBuilder chain mock — findAll now uses createQueryBuilder
+  const mockQb = {
+    leftJoinAndSelect: jest.fn().mockReturnThis(),
+    andWhere: jest.fn().mockReturnThis(),
+    orderBy: jest.fn().mockReturnThis(),
+    addOrderBy: jest.fn().mockReturnThis(),
+    skip: jest.fn().mockReturnThis(),
+    take: jest.fn().mockReturnThis(),
+    getManyAndCount: jest.fn().mockResolvedValue([[mockEquipo], 1]),
+  };
+
   const mockRepo = {
-    findAndCount: jest.fn(),
+    createQueryBuilder: jest.fn().mockReturnValue(mockQb),
     findOne: jest.fn(),
     create: jest.fn(),
     save: jest.fn(),
@@ -37,7 +49,7 @@ describe('EquiposService', () => {
   });
 
   it('findAll debe retornar datos paginados', async () => {
-    mockRepo.findAndCount.mockResolvedValue([[mockEquipo], 1]);
+    mockQb.getManyAndCount.mockResolvedValue([[mockEquipo], 1]);
     const result = await service.findAll({}, 1, 50);
     expect(result.data).toHaveLength(1);
     expect(result.total).toBe(1);
