@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Tabs, Spin, Tag, Table, message, Popconfirm, Button } from 'antd';
+import { Tabs, Spin, Tag, Table, message, Popconfirm, Button, Modal } from 'antd';
 import {
   ArrowLeftOutlined, UserOutlined, LaptopOutlined, HistoryOutlined,
-  FilePdfOutlined,
+  FilePdfOutlined, UserDeleteOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import type { ColumnsType } from 'antd/es/table';
@@ -295,13 +295,37 @@ export default function ColaboradorDetailPage() {
   const [colaborador, setColaborador] = useState<Colaborador | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  const cargar = () => {
     if (!id) return;
     colaboradoresService.findById(parseInt(id))
       .then(setColaborador)
       .catch(() => { message.error('Colaborador no encontrado'); navigate('/asignaciones'); })
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    cargar();
   }, [id, navigate]);
+
+  const desactivarColaborador = async () => {
+    if (!colaborador) return;
+    try {
+      const res = await colaboradoresService.deactivate(colaborador.id);
+      if (res?._offboarding?.equiposPendientes > 0 || res?._offboarding?.perifericosPendientes > 0) {
+        const { equiposPendientes: eq, perifericosPendientes: per } = res._offboarding;
+        Modal.warning({
+          title: '⚠️ Colaborador con equipos pendientes',
+          content: `Este colaborador tiene ${eq > 0 ? `${eq} equipo(s)` : ''} ${eq > 0 && per > 0 ? 'y ' : ''}${per > 0 ? `${per} periférico(s)` : ''} sin devolver. Coordina la devolución antes de formalizar la desvinculación.`,
+          okText: 'Entendido',
+        });
+      } else {
+        message.success('Colaborador desactivado');
+      }
+      cargar();
+    } catch {
+      message.error('Error al desactivar colaborador');
+    }
+  };
 
   if (loading) {
     return (
@@ -344,15 +368,31 @@ export default function ColaboradorDetailPage() {
             </p>
           </div>
         </div>
-        <Button
-          icon={<FilePdfOutlined />}
-          onClick={() => {
-            const baseUrl = import.meta.env.VITE_API_URL ?? '';
-            window.open(`${baseUrl}/api/asignaciones/acta/${colaborador.id}`);
-          }}
-        >
-          Acta de entrega
-        </Button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <Button
+            icon={<FilePdfOutlined />}
+            onClick={() => {
+              const baseUrl = import.meta.env.VITE_API_URL ?? '';
+              window.open(`${baseUrl}/api/asignaciones/acta/${colaborador.id}`);
+            }}
+          >
+            Acta de entrega
+          </Button>
+          {colaborador.activo && (
+            <Popconfirm
+              title="¿Desactivar colaborador?"
+              description="Se cambiará su estado a inactivo."
+              onConfirm={desactivarColaborador}
+              okText="Sí, desactivar"
+              cancelText="Cancelar"
+              okButtonProps={{ danger: true }}
+            >
+              <Button danger icon={<UserDeleteOutlined />}>
+                Desactivar
+              </Button>
+            </Popconfirm>
+          )}
+        </div>
       </div>
 
       {/* Tabs */}

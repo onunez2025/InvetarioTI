@@ -1,5 +1,5 @@
 import {
-  Controller, Get, Post, Put, Delete,
+  Controller, Get, Post, Put, Patch, Delete,
   Body, Param, Query, UseGuards, ParseIntPipe,
 } from '@nestjs/common';
 import { ColaboradoresService } from './colaboradores.service';
@@ -28,6 +28,11 @@ export class ColaboradoresController {
 
   @Put(':id')
   update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateColaboradorDto) {
+    return this.service.update(id, dto);
+  }
+
+  @Patch(':id')
+  patch(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateColaboradorDto) {
     return this.service.update(id, dto);
   }
 

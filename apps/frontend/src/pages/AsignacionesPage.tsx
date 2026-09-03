@@ -558,8 +558,17 @@ function TabColaboradores({
 
   const desactivar = async (id: number) => {
     try {
-      await colaboradoresService.deactivate(id);
-      message.success('Colaborador desactivado');
+      const res = await colaboradoresService.deactivate(id);
+      if (res?._offboarding?.equiposPendientes > 0 || res?._offboarding?.perifericosPendientes > 0) {
+        const { equiposPendientes: eq, perifericosPendientes: per } = res._offboarding;
+        Modal.warning({
+          title: '⚠️ Colaborador con equipos pendientes',
+          content: `Este colaborador tiene ${eq > 0 ? `${eq} equipo(s)` : ''} ${eq > 0 && per > 0 ? 'y ' : ''}${per > 0 ? `${per} periférico(s)` : ''} sin devolver. Coordina la devolución antes de formalizar la desvinculación.`,
+          okText: 'Entendido',
+        });
+      } else {
+        message.success('Colaborador desactivado');
+      }
       onRefresh();
     } catch (e: any) {
       message.error(e.message ?? 'Error');

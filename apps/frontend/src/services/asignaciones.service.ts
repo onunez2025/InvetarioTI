@@ -19,12 +19,13 @@ export const colaboradoresService = {
     const { data } = await api.post<Colaborador>('/api/colaboradores', payload);
     return data;
   },
-  async update(id: number, payload: UpdateColaboradorPayload): Promise<Colaborador> {
-    const { data } = await api.put<Colaborador>(`/api/colaboradores/${id}`, payload);
+  async update(id: number, payload: UpdateColaboradorPayload): Promise<any> {
+    const { data } = await api.put<any>(`/api/colaboradores/${id}`, payload);
     return data;
   },
-  async deactivate(id: number): Promise<void> {
-    await api.delete(`/api/colaboradores/${id}`);
+  async deactivate(id: number): Promise<any> {
+    const { data } = await api.delete<any>(`/api/colaboradores/${id}`);
+    return data;
   },
 };
 
