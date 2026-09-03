@@ -1,6 +1,7 @@
-import { Module } from '@nestjs/common';
+import { Module, OnModuleInit } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { TypeOrmModule } from '@nestjs/typeorm';
+import { TypeOrmModule, InjectDataSource } from '@nestjs/typeorm';
+import { DataSource } from 'typeorm';
 import { AppController } from './app.controller';
 import { getDatabaseConfig } from './config/database.config';
 import { AuthModule } from './modules/auth/auth.module';
@@ -41,4 +42,19 @@ import { ReportesModule }          from './modules/reportes/reportes.module';
   ],
   controllers: [AppController],
 })
-export class AppModule {}
+export class AppModule implements OnModuleInit {
+  constructor(@InjectDataSource() private dataSource: DataSource) {}
+
+  async onModuleInit() {
+    try {
+      const pending = await this.dataSource.showMigrations();
+      if (pending) {
+        console.log('[AppModule] Running pending migrations...');
+        await this.dataSource.runMigrations({ transaction: 'each' });
+        console.log('[AppModule] Migrations complete.');
+      }
+    } catch (err: any) {
+      console.error('[AppModule] Migration error (app will still start):', err?.message);
+    }
+  }
+}
