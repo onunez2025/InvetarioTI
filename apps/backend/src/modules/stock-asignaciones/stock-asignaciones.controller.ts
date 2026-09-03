@@ -13,6 +13,12 @@ import { RolesGuard, Roles } from '../auth/roles.guard';
 export class StockAsignacionesController {
   constructor(private readonly svc: StockAsignacionesService) {}
 
+  @Get('activas-agrupadas')
+  @Roles('ADMIN', 'GERENTE', 'TECNICO', 'VISUALIZADOR')
+  getActivasAgrupadas() {
+    return this.svc.getActivasAgrupadas();
+  }
+
   @Get('colaborador/:id')
   @Roles('ADMIN', 'GERENTE', 'TECNICO', 'VISUALIZADOR')
   byColaborador(

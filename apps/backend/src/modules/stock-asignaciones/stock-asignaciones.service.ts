@@ -129,4 +129,43 @@ export class StockAsignacionesService {
 
     return { creados: registros.length, modeloId: dto.modeloId };
   }
+
+  async getActivasAgrupadas() {
+    const rows = await this.dataSource.query(`
+      SELECT c.id AS colaborador_id, c.nombre AS colaborador,
+             c.gerencia, c.departamento,
+             sa.id AS asignacionId, sa.modelo_id AS modeloId,
+             m.nombre AS modeloNombre, m.tipo, m.codigo AS modeloCodigo,
+             sa.cantidad, sa.fecha_inicio AS fechaInicio
+      FROM inventario_ti.stock_asignaciones sa
+      JOIN inventario_ti.colaboradores c ON c.id=sa.colaborador_id
+      JOIN inventario_ti.modelos m ON m.id=sa.modelo_id
+      WHERE sa.fecha_fin IS NULL
+      ORDER BY c.nombre, sa.fecha_inicio
+    `);
+
+    // Agrupar en memoria por colaborador_id
+    const map = new Map<number, any>();
+    for (const row of rows) {
+      if (!map.has(row.colaborador_id)) {
+        map.set(row.colaborador_id, {
+          colaboradorId: row.colaborador_id,
+          colaborador: row.colaborador,
+          gerencia: row.gerencia,
+          departamento: row.departamento,
+          perifericos: [],
+        });
+      }
+      map.get(row.colaborador_id).perifericos.push({
+        id: row.asignacionId,
+        modeloId: row.modeloId,
+        modeloNombre: row.modeloNombre,
+        modeloCodigo: row.modeloCodigo,
+        tipo: row.tipo,
+        cantidad: row.cantidad,
+        fechaInicio: row.fechaInicio,
+      });
+    }
+    return Array.from(map.values());
+  }
 }

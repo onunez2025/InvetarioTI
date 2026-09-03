@@ -1000,21 +1000,32 @@ function TabPerifericosActivos({ colaboradores }: { colaboradores: Colaborador[]
   const cargar = useCallback(async () => {
     setLoading(true);
     try {
-      const results = await Promise.all(
-        colaboradores.map(c => stockAsignacionesService.porColaborador(c.id, true).catch(() => [] as StockAsignacion[]))
-      );
-      const all = results.flat();
-      setData(all);
+      const res = await api.get('/api/stock-asignaciones/activas-agrupadas');
+      const flatList: any[] = [];
+      for (const group of res.data) {
+        for (const p of group.perifericos) {
+          flatList.push({
+            id: p.id,
+            colaboradorId: group.colaboradorId,
+            colaborador: { id: group.colaboradorId, nombre: group.colaborador, gerencia: group.gerencia, departamento: group.departamento },
+            modeloId: p.modeloId,
+            modelo: { id: p.modeloId, nombre: p.modeloNombre, codigo: p.modeloCodigo, tipo: p.tipo },
+            cantidad: p.cantidad,
+            fechaInicio: p.fechaInicio,
+          });
+        }
+      }
+      setData(flatList);
     } catch {
       setData([]);
     } finally {
       setLoading(false);
     }
-  }, [colaboradores]);
+  }, []);
 
   useEffect(() => {
-    if (colaboradores.length > 0) cargar();
-  }, [cargar, colaboradores.length]);
+    cargar();
+  }, [cargar]);
 
   const columns: ColumnsType<StockAsignacion> = [
     {
