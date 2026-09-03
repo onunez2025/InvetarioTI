@@ -54,4 +54,24 @@ describe('AsignacionesService', () => {
     expect(Buffer.isBuffer(buf)).toBe(true);
     expect(buf.length).toBeGreaterThan(100);
   });
+
+  it('generarActaPorAsignacion retorna Buffer no vacío', async () => {
+    mockDs.query.mockResolvedValueOnce([
+      {
+        id: 1,
+        fecha_inicio: '2026-09-03',
+        colab_nombre: 'Carlos Mendoza',
+        colab_dni: '45678912',
+        colab_cargo: 'Desarrollador',
+        equipo_tipo: 'Laptop',
+        equipo_codigo: 'MT-001',
+        equipo_serie: 'SN12345',
+        modelo_nombre: 'ThinkPad T14',
+      },
+    ]);
+
+    const buf = await service.generarActaPorAsignacion(1);
+    expect(Buffer.isBuffer(buf)).toBe(true);
+    expect(buf.length).toBeGreaterThan(100);
+  });
 });
