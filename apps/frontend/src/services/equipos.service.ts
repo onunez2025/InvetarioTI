@@ -39,6 +39,16 @@ export const equiposService = {
     return data;
   },
 
+  async mantenimientos(id: number) {
+    const { data } = await api.get(`/api/equipos/${id}/mantenimientos`);
+    return data;
+  },
+
+  async crearMantenimiento(id: number, payload: any) {
+    const { data } = await api.post(`/api/equipos/${id}/mantenimientos`, payload);
+    return data;
+  },
+
   async importarExcel(archivo: File): Promise<{ importados: number; errores: number; detalles: string[]; archivoErrores?: string }> {
     const form = new FormData();
     form.append('archivo', archivo);

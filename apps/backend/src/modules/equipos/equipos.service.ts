@@ -4,6 +4,7 @@ import { Repository, DataSource } from 'typeorm';
 import * as QRCode from 'qrcode';
 import PDFDocument from 'pdfkit';
 import { Equipo } from './entities/equipo.entity';
+import { Mantenimiento } from './entities/mantenimiento.entity';
 import { CreateEquipoDto } from './dto/create-equipo.dto';
 import { UpdateEquipoDto } from './dto/update-equipo.dto';
 import { FiltroEquiposDto } from './dto/filtro-equipos.dto';
@@ -14,6 +15,8 @@ export class EquiposService {
   constructor(
     @InjectRepository(Equipo)
     private readonly equipoRepo: Repository<Equipo>,
+    @InjectRepository(Mantenimiento)
+    private readonly mantenimientoRepo: Repository<Mantenimiento>,
     private readonly auditoriaService: AuditoriaService,
     private readonly dataSource: DataSource,
   ) {}
@@ -98,5 +101,53 @@ export class EquiposService {
       doc.image(qrBuffer, x, doc.y, { width: qrSize, height: qrSize });
       doc.end();
     });
+  }
+
+  async getHistorial(equipoId: number) {
+    return this.dataSource.query(
+      `
+      SELECT a.fecha_inicio AS fecha_asignacion,
+             a.fecha_fin AS fecha_devolucion,
+             CONCAT(c.nombre, ' ', c.apellido) AS colaborador,
+             c.gerencia, c.departamento,
+             DATEDIFF(DAY, a.fecha_inicio, ISNULL(a.fecha_fin, GETUTCDATE())) AS dias,
+             u.nombre AS registradoPor
+      FROM inventario_ti.asignaciones a
+      JOIN inventario_ti.colaboradores c ON c.id = a.colaborador_id
+      LEFT JOIN inventario_ti.usuarios u ON u.id = a.creado_por
+      WHERE a.equipo_id = @0
+      ORDER BY a.fecha_inicio DESC
+      `,
+      [equipoId],
+    );
+  }
+
+  async getMantenimientos(equipoId: number): Promise<Mantenimiento[]> {
+    return this.mantenimientoRepo.find({
+      where: { equipoId },
+      order: { fechaInicio: 'DESC' },
+    });
+  }
+
+  async createMantenimiento(
+    equipoId: number,
+    dto: Partial<Mantenimiento>,
+    usuarioId?: number,
+  ): Promise<Mantenimiento> {
+    const mant = this.mantenimientoRepo.create({
+      ...dto,
+      equipoId,
+      creadoPor: usuarioId,
+    });
+    const saved = await this.mantenimientoRepo.save(mant);
+    if (!dto.fechaFin) {
+      await this.equipoRepo.update(equipoId, { estado: 'MANTENIMIENTO' });
+    } else {
+      const equipo = await this.equipoRepo.findOne({ where: { id: equipoId } });
+      if (equipo?.estado === 'MANTENIMIENTO') {
+        await this.equipoRepo.update(equipoId, { estado: 'ACTIVO' });
+      }
+    }
+    return saved;
   }
 }

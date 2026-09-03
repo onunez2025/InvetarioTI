@@ -1,9 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Tabs, Spin, Tag, Table, message, Tooltip } from 'antd';
+import {
+  Tabs, Spin, Tag, Table, message, Tooltip, Button, Modal,
+  Form, Select, DatePicker, Input, InputNumber, Typography,
+} from 'antd';
 import {
   ArrowLeftOutlined, LaptopOutlined, SwapOutlined,
-  HistoryOutlined, CheckCircleOutlined,
+  HistoryOutlined, CheckCircleOutlined, QrcodeOutlined,
+  ToolOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import type { ColumnsType } from 'antd/es/table';
@@ -171,76 +175,331 @@ function TabAsignacionActual({ equipoId }: { equipoId: number }) {
 }
 
 /* ============================================================
-   TAB HISTORIAL ASIGNACIONES
+   TAB HISTORIAL ASIGNACIONES (CADENA DE CUSTODIA)
    ============================================================ */
 function TabHistorial({ equipoId }: { equipoId: number }) {
   const navigate = useNavigate();
-  const [data, setData] = useState<Asignacion[]>([]);
+  const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    asignacionesService.findByEquipo(equipoId)
-      .then(setData)
-      .catch(() => message.error('Error al cargar historial'))
+    equiposService.historial(equipoId)
+      .then((res: any[]) => {
+        if (Array.isArray(res) && res.length > 0) {
+          setData(res);
+        } else {
+          return asignacionesService.findByEquipo(equipoId).then(setData);
+        }
+      })
+      .catch(() => {
+        asignacionesService.findByEquipo(equipoId)
+          .then(setData)
+          .catch(() => message.error('Error al cargar historial'));
+      })
       .finally(() => setLoading(false));
   }, [equipoId]);
 
-  const columns: ColumnsType<Asignacion> = [
+  const columns: ColumnsType<any> = [
     {
       title: 'Colaborador',
       key: 'colaborador',
-      render: (_, a) => (
-        <span
-          style={{ color: '#2563eb', cursor: 'pointer', fontWeight: 500 }}
-          onClick={() => navigate(`/colaboradores/${a.colaboradorId}`)}
-        >
-          {a.colaborador.nombre}
-        </span>
-      ),
+      render: (_, a) => {
+        const nombre = a.colaborador?.nombre ?? a.colaborador ?? '—';
+        const colId = a.colaboradorId ?? a.colaborador_id;
+        return (
+          <span
+            style={{ color: '#2563eb', cursor: colId ? 'pointer' : 'default', fontWeight: 500 }}
+            onClick={() => colId && navigate(`/colaboradores/${colId}`)}
+          >
+            {nombre}
+          </span>
+        );
+      },
+    },
+    {
+      title: 'Área / Gerencia',
+      key: 'area',
+      render: (_, a) => {
+        const parts = [a.gerencia ?? a.colaborador?.gerencia, a.departamento ?? a.colaborador?.departamento].filter(Boolean);
+        return <span style={{ fontSize: 12, color: '#64748b' }}>{parts.length ? parts.join(' · ') : '—'}</span>;
+      },
     },
     {
       title: 'Desde',
-      dataIndex: 'fechaInicio',
-      render: (v) => <span style={{ fontSize: 12, color: '#64748b' }}>{fmtDate(v)}</span>,
-      sorter: (a, b) => a.fechaInicio.localeCompare(b.fechaInicio),
-      defaultSortOrder: 'descend',
+      key: 'desde',
+      render: (_, a) => <span style={{ fontSize: 12, color: '#64748b' }}>{fmtDate(a.fechaInicio ?? a.fecha_asignacion)}</span>,
     },
     {
       title: 'Hasta',
-      dataIndex: 'fechaFin',
-      render: (v) => v
-        ? <span style={{ fontSize: 12, color: '#64748b' }}>{fmtDate(v)}</span>
-        : <span style={{ background: '#dcfce7', color: '#16a34a', padding: '2px 8px', borderRadius: 10, fontSize: 11, fontWeight: 600 }}>Activo</span>,
+      key: 'hasta',
+      render: (_, a) => {
+        const fin = a.fechaFin ?? a.fecha_devolucion;
+        return fin ? (
+          <span style={{ fontSize: 12, color: '#64748b' }}>{fmtDate(fin)}</span>
+        ) : (
+          <span style={{ background: '#dcfce7', color: '#16a34a', padding: '2px 8px', borderRadius: 10, fontSize: 11, fontWeight: 600 }}>
+            Activo
+          </span>
+        );
+      },
     },
     {
       title: 'Duración',
       key: 'duracion',
       render: (_, a) => {
-        const fin = a.fechaFin ? dayjs(a.fechaFin) : dayjs();
-        const dias = fin.diff(dayjs(a.fechaInicio), 'day');
+        if (a.dias != null) return <span style={{ fontSize: 12, color: '#64748b' }}>{a.dias}d</span>;
+        const inicio = a.fechaInicio ?? a.fecha_asignacion;
+        const fin = (a.fechaFin ?? a.fecha_devolucion) ? dayjs(a.fechaFin ?? a.fecha_devolucion) : dayjs();
+        const dias = inicio ? fin.diff(dayjs(inicio), 'day') : '—';
         return <span style={{ fontSize: 12, color: '#64748b' }}>{dias}d</span>;
       },
     },
     {
-      title: 'Observaciones',
-      dataIndex: 'observaciones',
-      render: (v) => v
-        ? <Tooltip title={v}><span style={{ fontSize: 12, color: '#64748b' }}>{v.slice(0, 40)}{v.length > 40 ? '…' : ''}</span></Tooltip>
-        : <span style={{ color: '#94a3b8', fontSize: 12 }}>—</span>,
+      title: 'Registrado por',
+      key: 'registradoPor',
+      render: (_, a) => <span style={{ fontSize: 12, color: '#64748b' }}>{a.registradoPor ?? a.usuario?.nombre ?? '—'}</span>,
     },
   ];
 
   return (
     <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #e2e8f0', overflow: 'hidden' }}>
-      <Table<Asignacion>
+      <Table
         dataSource={data}
         columns={columns}
-        rowKey="id"
+        rowKey={(r, idx) => r.id ?? String(idx)}
         loading={loading}
         size="small"
-        pagination={{ pageSize: 20, showTotal: t => `${t} asignaciones` }}
-        locale={{ emptyText: 'Sin historial de asignaciones' }}
+        pagination={{ pageSize: 20, showTotal: (t) => `${t} asignaciones` }}
+        locale={{ emptyText: 'Sin historial de custodia' }}
       />
+    </div>
+  );
+}
+
+/* ============================================================
+   TAB MANTENIMIENTOS
+   ============================================================ */
+interface MantenimientoItem {
+  id: number;
+  tipo: string;
+  fechaInicio: string;
+  fechaFin: string | null;
+  tecnico?: string;
+  descripcion?: string;
+  costo?: number;
+  resultado?: string;
+}
+
+function TabMantenimientos({
+  equipoId,
+  onCambio,
+}: {
+  equipoId: number;
+  onCambio?: () => void;
+}) {
+  const [data, setData] = useState<MantenimientoItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [modalAbierto, setModalAbierto] = useState(false);
+  const [guardando, setGuardando] = useState(false);
+  const [form] = Form.useForm();
+
+  const cargar = () => {
+    setLoading(true);
+    equiposService
+      .mantenimientos(equipoId)
+      .then(setData)
+      .catch(() => message.error('Error al cargar mantenimientos'))
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    cargar();
+  }, [equipoId]);
+
+  const onFinish = async (values: any) => {
+    setGuardando(true);
+    try {
+      await equiposService.crearMantenimiento(equipoId, {
+        tipo: values.tipo,
+        fechaInicio: values.fechaInicio.format('YYYY-MM-DD'),
+        fechaFin: values.fechaFin ? values.fechaFin.format('YYYY-MM-DD') : null,
+        tecnico: values.tecnico,
+        descripcion: values.descripcion,
+        costo: values.costo,
+        resultado: values.resultado,
+      });
+      message.success('Mantenimiento registrado correctamente');
+      setModalAbierto(false);
+      form.resetFields();
+      cargar();
+      if (onCambio) onCambio();
+    } catch {
+      message.error('Error al registrar mantenimiento');
+    } finally {
+      setGuardando(false);
+    }
+  };
+
+  const columns: ColumnsType<MantenimientoItem> = [
+    {
+      title: 'Tipo',
+      dataIndex: 'tipo',
+      key: 'tipo',
+      render: (tipo: string) => {
+        const color =
+          tipo === 'CORRECTIVO' ? 'red' : tipo === 'PREVENTIVO' ? 'blue' : 'gold';
+        return <Tag color={color}>{tipo}</Tag>;
+      },
+    },
+    {
+      title: 'Fecha Inicio',
+      dataIndex: 'fechaInicio',
+      key: 'fechaInicio',
+      render: (v) => fmtDate(v),
+    },
+    {
+      title: 'Fecha Fin',
+      dataIndex: 'fechaFin',
+      key: 'fechaFin',
+      render: (v) => (v ? fmtDate(v) : <Tag color="processing">En curso</Tag>),
+    },
+    {
+      title: 'Técnico',
+      dataIndex: 'tecnico',
+      key: 'tecnico',
+      render: (v) => v ?? '—',
+    },
+    {
+      title: 'Costo',
+      dataIndex: 'costo',
+      key: 'costo',
+      render: (v) => (v != null ? `S/ ${Number(v).toFixed(2)}` : '—'),
+    },
+    {
+      title: 'Descripción',
+      dataIndex: 'descripcion',
+      key: 'descripcion',
+      render: (v) =>
+        v ? (
+          <Tooltip title={v}>
+            <span>
+              {v.slice(0, 35)}
+              {v.length > 35 ? '…' : ''}
+            </span>
+          </Tooltip>
+        ) : (
+          '—'
+        ),
+    },
+    {
+      title: 'Resultado',
+      dataIndex: 'resultado',
+      key: 'resultado',
+      render: (v) => v ?? '—',
+    },
+  ];
+
+  return (
+    <div style={{ maxWidth: 900 }}>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: 16,
+        }}
+      >
+        <Typography.Text type="secondary">
+          Registro de mantenimientos e intervenciones técnicas.
+        </Typography.Text>
+        <Button
+          type="primary"
+          icon={<ToolOutlined />}
+          onClick={() => {
+            form.resetFields();
+            setModalAbierto(true);
+          }}
+        >
+          Registrar mantenimiento
+        </Button>
+      </div>
+
+      <div
+        style={{
+          background: '#fff',
+          borderRadius: 12,
+          border: '1px solid #e2e8f0',
+          overflow: 'hidden',
+        }}
+      >
+        <Table<MantenimientoItem>
+          dataSource={data}
+          columns={columns}
+          rowKey="id"
+          loading={loading}
+          size="small"
+          pagination={{ pageSize: 15 }}
+          locale={{ emptyText: 'Sin mantenimientos registrados' }}
+        />
+      </div>
+
+      <Modal
+        title="Registrar mantenimiento"
+        open={modalAbierto}
+        onCancel={() => setModalAbierto(false)}
+        onOk={() => form.submit()}
+        confirmLoading={guardando}
+        okText="Guardar"
+        cancelText="Cancelar"
+        destroyOnClose
+      >
+        <Form form={form} layout="vertical" onFinish={onFinish}>
+          <Form.Item
+            name="tipo"
+            label="Tipo"
+            rules={[{ required: true, message: 'Seleccione el tipo' }]}
+            initialValue="PREVENTIVO"
+          >
+            <Select placeholder="Seleccionar tipo">
+              <Select.Option value="PREVENTIVO">Preventivo</Select.Option>
+              <Select.Option value="CORRECTIVO">Correctivo</Select.Option>
+              <Select.Option value="GARANTIA">Garantía</Select.Option>
+            </Select>
+          </Form.Item>
+
+          <Form.Item
+            name="fechaInicio"
+            label="Fecha inicio"
+            rules={[{ required: true, message: 'Seleccione fecha inicio' }]}
+            initialValue={dayjs()}
+          >
+            <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" />
+          </Form.Item>
+
+          <Form.Item
+            name="fechaFin"
+            label="Fecha fin (opcional, dejar vacío si el equipo está en curso)"
+          >
+            <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" />
+          </Form.Item>
+
+          <Form.Item name="tecnico" label="Técnico / Proveedor">
+            <Input placeholder="Ej. Juan Pérez o Servicio Oficial" />
+          </Form.Item>
+
+          <Form.Item name="costo" label="Costo (S/)">
+            <InputNumber style={{ width: '100%' }} min={0} precision={2} placeholder="0.00" />
+          </Form.Item>
+
+          <Form.Item name="descripcion" label="Descripción de la intervención">
+            <Input.TextArea rows={3} placeholder="Detalles de la falla, cambio de piezas o mantenimiento realizado..." />
+          </Form.Item>
+
+          <Form.Item name="resultado" label="Resultado / Diagnóstico">
+            <Input placeholder="Ej. Disco reemplazado, mantenimiento preventivo completado" />
+          </Form.Item>
+        </Form>
+      </Modal>
     </div>
   );
 }
@@ -254,12 +513,20 @@ export default function EquipoDetailPage() {
   const [equipo, setEquipo] = useState<Equipo | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  const cargar = () => {
     if (!id) return;
-    equiposService.obtener(parseInt(id))
+    equiposService
+      .obtener(parseInt(id))
       .then(setEquipo)
-      .catch(() => { message.error('Equipo no encontrado'); navigate('/equipos'); })
+      .catch(() => {
+        message.error('Equipo no encontrado');
+        navigate('/equipos');
+      })
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    cargar();
   }, [id, navigate]);
 
   if (loading) {
@@ -279,16 +546,16 @@ export default function EquipoDetailPage() {
 
   return (
     <div style={{ animation: 'fadeInUp 0.4s ease both', maxWidth: 900 }}>
-      {/* Back + Header */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, marginBottom: 28 }}>
-        <button
-          className="it-btn"
-          onClick={() => navigate('/equipos')}
-          style={{ marginTop: 2 }}
-        >
-          <ArrowLeftOutlined /> Volver
-        </button>
+      {/* Back + Header + QR Button */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, marginBottom: 28 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, flex: 1 }}>
+          <button
+            className="it-btn"
+            onClick={() => navigate('/equipos')}
+            style={{ marginTop: 2 }}
+          >
+            <ArrowLeftOutlined /> Volver
+          </button>
           <div style={{
             width: 52, height: 52,
             background: tipoColor[equipo.modelo?.tipo?.toUpperCase() ?? ''] ?? '#f1f5f9',
@@ -310,6 +577,17 @@ export default function EquipoDetailPage() {
             </p>
           </div>
         </div>
+
+        {/* Botón Etiqueta QR */}
+        <Button
+          icon={<QrcodeOutlined />}
+          onClick={() => {
+            const baseUrl = import.meta.env.VITE_API_URL ?? '';
+            window.open(`${baseUrl}/api/equipos/${equipo.id}/qr-label`);
+          }}
+        >
+          Etiqueta QR
+        </Button>
       </div>
 
       {/* Tabs */}
@@ -330,6 +608,11 @@ export default function EquipoDetailPage() {
             key: 'historial',
             label: <span><HistoryOutlined style={{ marginRight: 6 }} />Historial</span>,
             children: <TabHistorial equipoId={equipo.id} />,
+          },
+          {
+            key: 'mantenimientos',
+            label: <span><ToolOutlined style={{ marginRight: 6 }} />Mantenimientos</span>,
+            children: <TabMantenimientos equipoId={equipo.id} onCambio={cargar} />,
           },
         ]}
       />

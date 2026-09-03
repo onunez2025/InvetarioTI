@@ -50,9 +50,31 @@ export class EquiposController {
   }
 
   @Get(':id/historial')
-  @Roles('ADMIN', 'GERENTE', 'TECNICO')
+  @Roles('ADMIN', 'GERENTE', 'TECNICO', 'VISUALIZADOR')
   historial(@Param('id', ParseIntPipe) id: number) {
+    return this.equiposService.getHistorial(id);
+  }
+
+  @Get(':id/auditoria')
+  @Roles('ADMIN', 'GERENTE', 'TECNICO')
+  auditoria(@Param('id', ParseIntPipe) id: number) {
     return this.auditoriaService.findByEquipo(id);
+  }
+
+  @Get(':id/mantenimientos')
+  @Roles('ADMIN', 'GERENTE', 'TECNICO', 'VISUALIZADOR')
+  mantenimientos(@Param('id', ParseIntPipe) id: number) {
+    return this.equiposService.getMantenimientos(id);
+  }
+
+  @Post(':id/mantenimientos')
+  @Roles('ADMIN', 'TECNICO')
+  createMantenimiento(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: any,
+    @Request() req: any,
+  ) {
+    return this.equiposService.createMantenimiento(id, dto, req.user?.id);
   }
 
   @Post()
