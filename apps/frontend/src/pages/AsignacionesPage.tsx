@@ -2,13 +2,15 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Table, Modal, Form, Input, Select, DatePicker, InputNumber, message,
-  Popconfirm, Tag, Tooltip, Tabs, Empty, Spin, Row, Col,
+  Popconfirm, Tag, Tooltip, Tabs, Empty, Spin, Row, Col, Transfer,
 } from 'antd';
 import {
   PlusOutlined, EditOutlined, UserDeleteOutlined,
   SwapOutlined, CheckCircleOutlined, HistoryOutlined,
   TeamOutlined, LaptopOutlined, InboxOutlined, FilePdfOutlined,
+  ThunderboltOutlined,
 } from '@ant-design/icons';
+import api from '../services/api';
 import dayjs from 'dayjs';
 import type { ColumnsType } from 'antd/es/table';
 import { asignacionesService, colaboradoresService } from '../services/asignaciones.service';
@@ -815,12 +817,185 @@ function ModalAsignarPeriferico({
 }
 
 /* ============================================================
+   MODAL ASIGNACIÓN MASIVA DE PERIFÉRICOS
+   ============================================================ */
+function ModalAsignacionMasiva({
+  open,
+  onClose,
+  onSaved,
+  colaboradores,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onSaved: () => void;
+  colaboradores: Colaborador[];
+}) {
+  const [targetKeys, setTargetKeys] = useState<string[]>([]);
+  const [modelos, setModelos] = useState<Modelo[]>([]);
+  const [cargandoModelos, setCargandoModelos] = useState(false);
+  const [guardando, setGuardando] = useState(false);
+  const [form] = Form.useForm();
+
+  useEffect(() => {
+    if (open) {
+      setCargandoModelos(true);
+      modelosService
+        .listar({ tieneSerie: false, activo: true })
+        .then((r) => setModelos(r.data))
+        .catch(() => message.error('Error al cargar modelos de periféricos'))
+        .finally(() => setCargandoModelos(false));
+    }
+  }, [open]);
+
+  const transferDataSource = useMemo(() => {
+    return colaboradores
+      .filter((c) => c.activo)
+      .map((c) => ({
+        key: String(c.id),
+        title: c.nombre,
+        description: [c.cargo, c.gerencia, c.departamento].filter(Boolean).join(' · '),
+      }));
+  }, [colaboradores]);
+
+  const onFinish = async (values: any) => {
+    if (targetKeys.length === 0) {
+      message.warning('Seleccione al menos un colaborador');
+      return;
+    }
+    setGuardando(true);
+    try {
+      await api.post('/api/stock-asignaciones/bulk', {
+        modeloId: values.modeloId,
+        cantidad: values.cantidad,
+        fechaInicio: values.fechaInicio.format('YYYY-MM-DD'),
+        colaboradorIds: targetKeys.map(Number),
+        observaciones: values.observaciones,
+      });
+      message.success(`Periférico asignado masivamente a ${targetKeys.length} colaboradores`);
+      setTargetKeys([]);
+      form.resetFields();
+      onSaved();
+      onClose();
+    } catch (e: any) {
+      const msg = e.response?.data?.message || 'Error en la asignación masiva';
+      message.error(msg);
+    } finally {
+      setGuardando(false);
+    }
+  };
+
+  return (
+    <Modal
+      title="Asignación masiva de periféricos"
+      open={open}
+      onCancel={() => {
+        onClose();
+        setTargetKeys([]);
+        form.resetFields();
+      }}
+      onOk={() => form.submit()}
+      okText={`Asignar a todos (${targetKeys.length})`}
+      cancelText="Cancelar"
+      confirmLoading={guardando}
+      destroyOnClose
+      width={720}
+    >
+      <Form form={form} layout="vertical" onFinish={onFinish} size="small">
+        <Row gutter={12}>
+          <Col span={12}>
+            <Form.Item
+              name="modeloId"
+              label="Modelo (periférico sin serie)"
+              rules={[{ required: true, message: 'Seleccione un modelo' }]}
+            >
+              <Select
+                showSearch
+                loading={cargandoModelos}
+                placeholder="Seleccionar modelo..."
+                filterOption={(input, opt) =>
+                  String(opt?.label ?? '').toLowerCase().includes(input.toLowerCase())
+                }
+              >
+                {modelos.map((m) => (
+                  <Select.Option
+                    key={m.id}
+                    value={m.id}
+                    label={`${m.codigo ?? ''} ${m.nombre} (${m.tipo})`}
+                  >
+                    <span style={{ fontWeight: 600 }}>{m.codigo ?? ''}</span>
+                    <span style={{ marginLeft: 6 }}>{m.nombre}</span>
+                    <span style={{ color: '#64748b', marginLeft: 6, fontSize: 11 }}>
+                      ({m.tipo})
+                    </span>
+                  </Select.Option>
+                ))}
+              </Select>
+            </Form.Item>
+          </Col>
+          <Col span={6}>
+            <Form.Item
+              name="cantidad"
+              label="Cantidad por persona"
+              initialValue={1}
+              rules={[{ required: true }]}
+            >
+              <InputNumber min={1} max={10} style={{ width: '100%' }} />
+            </Form.Item>
+          </Col>
+          <Col span={6}>
+            <Form.Item
+              name="fechaInicio"
+              label="Fecha inicio"
+              initialValue={dayjs()}
+              rules={[{ required: true }]}
+            >
+              <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" />
+            </Form.Item>
+          </Col>
+        </Row>
+
+        <Form.Item
+          label={`Colaboradores (${targetKeys.length} de ${colaboradores.filter((c) => c.activo).length} seleccionados)`}
+        >
+          <Transfer
+            dataSource={transferDataSource}
+            titles={['Disponibles', 'Seleccionados']}
+            targetKeys={targetKeys}
+            onChange={(keys) => setTargetKeys(keys as string[])}
+            render={(item) => (
+              <div>
+                <div style={{ fontWeight: 600, fontSize: 12 }}>{item.title}</div>
+                {item.description && (
+                  <div style={{ fontSize: 10, color: '#94a3b8' }}>{item.description}</div>
+                )}
+              </div>
+            )}
+            listStyle={{ width: 310, height: 280 }}
+            showSearch
+            filterOption={(input, item) =>
+              (item.title?.toLowerCase() ?? '').includes(input.toLowerCase()) ||
+              (item.description?.toLowerCase() ?? '').includes(input.toLowerCase())
+            }
+            pagination={{ pageSize: 50 }}
+          />
+        </Form.Item>
+
+        <Form.Item name="observaciones" label="Observaciones">
+          <Input.TextArea rows={2} placeholder="Opcional..." />
+        </Form.Item>
+      </Form>
+    </Modal>
+  );
+}
+
+/* ============================================================
    TAB PERIFÉRICOS ACTIVOS
    ============================================================ */
 function TabPerifericosActivos({ colaboradores }: { colaboradores: Colaborador[] }) {
   const [data, setData] = useState<StockAsignacion[]>([]);
   const [loading, setLoading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
+  const [modalMasivaOpen, setModalMasivaOpen] = useState(false);
 
   const cargar = useCallback(async () => {
     setLoading(true);
@@ -897,7 +1072,17 @@ function TabPerifericosActivos({ colaboradores }: { colaboradores: Colaborador[]
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginBottom: 12 }}>
+        <button
+          onClick={() => setModalMasivaOpen(true)}
+          style={{
+            background: '#2563eb', color: '#fff', border: 'none', borderRadius: 8,
+            padding: '7px 16px', cursor: 'pointer', fontWeight: 600, fontSize: 13,
+            display: 'flex', alignItems: 'center', gap: 6,
+          }}
+        >
+          <ThunderboltOutlined />Asignación masiva
+        </button>
         <button
           onClick={() => setModalOpen(true)}
           style={{
@@ -921,6 +1106,12 @@ function TabPerifericosActivos({ colaboradores }: { colaboradores: Colaborador[]
       <ModalAsignarPeriferico
         open={modalOpen}
         onClose={() => setModalOpen(false)}
+        onSaved={cargar}
+        colaboradores={colaboradores}
+      />
+      <ModalAsignacionMasiva
+        open={modalMasivaOpen}
+        onClose={() => setModalMasivaOpen(false)}
         onSaved={cargar}
         colaboradores={colaboradores}
       />

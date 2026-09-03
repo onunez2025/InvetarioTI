@@ -28,6 +28,12 @@ export class StockAsignacionesController {
     return this.svc.create(dto, req.user.id);
   }
 
+  @Post('bulk')
+  @Roles('ADMIN', 'TECNICO')
+  createBulk(@Body() dto: any, @Request() req: any) {
+    return this.svc.createBulk(dto, req.user?.id);
+  }
+
   @Patch(':id/devolver')
   @Roles('ADMIN', 'TECNICO')
   devolver(

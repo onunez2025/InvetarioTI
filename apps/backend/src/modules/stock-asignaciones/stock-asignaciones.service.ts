@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, IsNull } from 'typeorm';
+import { Repository, IsNull, DataSource } from 'typeorm';
 import { StockAsignacion } from './entities/stock-asignacion.entity';
 import { CreateStockAsignacionDto } from './dto/create-stock-asignacion.dto';
 import { Modelo } from '../modelos/entities/modelo.entity';
@@ -12,6 +12,7 @@ export class StockAsignacionesService {
     private readonly repo: Repository<StockAsignacion>,
     @InjectRepository(Modelo)
     private readonly modeloRepo: Repository<Modelo>,
+    private readonly dataSource: DataSource,
   ) {}
 
   async findByColaborador(colaboradorId: number, soloActivas = false): Promise<StockAsignacion[]> {
@@ -69,5 +70,63 @@ export class StockAsignacionesService {
     if (sa.fechaFin) throw new BadRequestException('Este periférico ya fue devuelto');
     sa.fechaFin = fechaFin;
     return this.repo.save(sa);
+  }
+
+  async createBulk(
+    dto: {
+      modeloId: number;
+      cantidad: number;
+      fechaInicio: string;
+      colaboradorIds: number[];
+      observaciones?: string;
+    },
+    usuarioId: number,
+  ) {
+    if (!dto.colaboradorIds || dto.colaboradorIds.length === 0) {
+      throw new BadRequestException('Debe seleccionar al menos un colaborador');
+    }
+    if (dto.colaboradorIds.length > 50) {
+      throw new BadRequestException('Máximo 50 colaboradores por asignación masiva');
+    }
+
+    const modelo = await this.modeloRepo.findOne({ where: { id: dto.modeloId } });
+    if (!modelo) throw new NotFoundException('Modelo no encontrado');
+    if (modelo.tieneSerie) {
+      throw new BadRequestException('Este modelo es serializado — use asignación individual de equipos');
+    }
+
+    const [stockRow] = await this.dataSource.query(
+      `
+      SELECT ISNULL(SUM(cd.cantidad), 0) -
+             ISNULL((SELECT SUM(sa.cantidad) FROM inventario_ti.stock_asignaciones sa
+                     WHERE sa.modelo_id = @0 AND sa.fecha_fin IS NULL), 0) AS disponible
+      FROM inventario_ti.compras_detalle cd WHERE cd.modelo_id = @0
+    `,
+      [dto.modeloId],
+    );
+    const disponible = parseInt(stockRow?.disponible ?? '0', 10);
+    const necesario = dto.cantidad * dto.colaboradorIds.length;
+    if (disponible < necesario) {
+      throw new BadRequestException(
+        `Stock insuficiente. Disponible: ${disponible}, necesario: ${necesario}`,
+      );
+    }
+
+    const registros = dto.colaboradorIds.map((cid) =>
+      this.repo.create({
+        modeloId: dto.modeloId,
+        colaboradorId: cid,
+        cantidad: dto.cantidad,
+        fechaInicio: dto.fechaInicio,
+        observaciones: dto.observaciones,
+        creadoPorId: usuarioId,
+      }),
+    );
+
+    await this.dataSource.transaction(async (manager) => {
+      await manager.save(registros);
+    });
+
+    return { creados: registros.length, modeloId: dto.modeloId };
   }
 }
