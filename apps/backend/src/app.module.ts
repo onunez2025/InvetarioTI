@@ -19,10 +19,13 @@ import { StockAsignacionesModule } from './modules/stock-asignaciones/stock-asig
 import { InventarioModule }        from './modules/inventario/inventario.module';
 import { DashboardModule }         from './modules/dashboard/dashboard.module';
 import { ReportesModule }          from './modules/reportes/reportes.module';
+import { ScheduleModule }          from '@nestjs/schedule';
+import { AlertasModule }           from './modules/alertas/alertas.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    ScheduleModule.forRoot(),
     TypeOrmModule.forRoot(getDatabaseConfig()),
     AuthModule,
     EquiposModule,
@@ -39,6 +42,7 @@ import { ReportesModule }          from './modules/reportes/reportes.module';
     InventarioModule,
     DashboardModule,
     ReportesModule,
+    AlertasModule,
   ],
   controllers: [AppController],
 })

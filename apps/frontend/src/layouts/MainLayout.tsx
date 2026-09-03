@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Drawer, Tooltip } from 'antd';
+import { Drawer, Tooltip, Badge, Popover, List, Button, Typography } from 'antd';
 import {
   DashboardOutlined,
   LaptopOutlined,
@@ -17,10 +17,12 @@ import {
   InboxOutlined,
   ShopOutlined,
   FileExcelOutlined,
+  CheckOutlined,
 } from '@ant-design/icons';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { useEquiposStore } from '../store/equiposStore';
+import { useNotificaciones } from '../hooks/useNotificaciones';
 
 /* ---- Types ---- */
 interface NavItem {
@@ -305,6 +307,53 @@ export default function MainLayout() {
   }, [navigate, drawerOpen]);
 
   const pageTitle = resolvePageTitle(location.pathname);
+  const { notis, noLeidas, marcarLeida, marcarTodas } = useNotificaciones();
+
+  const panelContent = (
+    <div style={{ width: 340, maxHeight: 400, overflowY: 'auto' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid #e2e8f0', marginBottom: 8 }}>
+        <Typography.Text strong>Notificaciones ({noLeidas} sin leer)</Typography.Text>
+        {noLeidas > 0 && (
+          <Button size="small" icon={<CheckOutlined />} type="link" onClick={marcarTodas}>
+            Marcar todas
+          </Button>
+        )}
+      </div>
+      {notis.length === 0 ? (
+        <Typography.Text type="secondary" style={{ padding: 16, display: 'block', textAlign: 'center' }}>
+          Sin notificaciones
+        </Typography.Text>
+      ) : (
+        <List
+          dataSource={notis}
+          renderItem={(n) => (
+            <List.Item
+              onClick={() => !n.leida && marcarLeida(n.id)}
+              style={{
+                cursor: n.leida ? 'default' : 'pointer',
+                background: n.leida ? 'transparent' : '#eff6ff',
+                padding: '8px 8px',
+                borderRadius: 6,
+                marginBottom: 4,
+              }}
+            >
+              <div style={{ width: '100%' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Typography.Text strong style={{ fontSize: 13, color: n.leida ? '#64748b' : '#1e293b' }}>
+                    {n.titulo}
+                  </Typography.Text>
+                  <span style={{ fontSize: 11, color: '#94a3b8' }}>
+                    {new Date(n.creadoEn).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                </div>
+                <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>{n.mensaje}</div>
+              </div>
+            </List.Item>
+          )}
+        />
+      )}
+    </div>
+  );
 
   return (
     <>
@@ -366,11 +415,13 @@ export default function MainLayout() {
               <input placeholder="Buscar equipo, serie, código..." aria-label="Buscar" />
             </div>
 
-            <Tooltip title="Notificaciones">
-              <div className="it-icon-btn" role="button" tabIndex={0} aria-label="Notificaciones">
-                <BellOutlined />
+            <Popover content={panelContent} trigger="click" placement="bottomRight">
+              <div className="it-icon-btn" role="button" tabIndex={0} aria-label="Notificaciones" style={{ cursor: 'pointer' }}>
+                <Badge count={noLeidas} size="small" offset={[2, -2]}>
+                  <BellOutlined style={{ fontSize: 16, color: '#64748b' }} />
+                </Badge>
               </div>
-            </Tooltip>
+            </Popover>
 
             <Tooltip title={`${usuario?.nombre ?? 'Usuario'} · ${usuario?.rol ?? ''} — Cerrar sesión`}>
               <div
