@@ -71,15 +71,29 @@ function ModalAsignacion({
   const guardar = async (vals: any) => {
     setLoading(true);
     try {
-      await asignacionesService.create({
+      const nueva = await asignacionesService.create({
         equipoId: vals.equipoId,
         colaboradorId: vals.colaboradorId,
         fechaInicio: vals.fechaInicio.format('YYYY-MM-DD'),
         observaciones: vals.observaciones,
       });
-      message.success('Asignación registrada');
+      message.success('Asignación registrada correctamente');
       onSaved();
       onClose();
+
+      if (nueva?.id) {
+        Modal.confirm({
+          title: '📄 Acta de Entrega generada',
+          content: '¿Deseas abrir e imprimir el Acta de Entrega de este equipo para que sea firmada por el colaborador?',
+          okText: 'Abrir Acta de Entrega',
+          cancelText: 'Cerrar',
+          okButtonProps: { style: { background: '#2563eb', borderColor: '#2563eb' } },
+          onOk: () => {
+            const baseUrl = import.meta.env.VITE_API_URL ?? '';
+            window.open(`${baseUrl}/api/asignaciones/acta-individual/${nueva.id}`);
+          },
+        });
+      }
     } catch (e: any) {
       message.error(e.response?.data?.message ?? e.message ?? 'Error al asignar');
     } finally {
@@ -388,9 +402,21 @@ function TabActivas({
     {
       title: '',
       key: 'acciones',
-      width: 100,
+      width: 130,
       render: (_, a) => (
         <div style={{ display: 'flex', gap: 6 }}>
+          <Tooltip title="Ver Acta de Entrega PDF">
+            <button
+              className="it-btn"
+              style={{ padding: '4px 8px', fontSize: 12, color: '#2563eb' }}
+              onClick={() => {
+                const baseUrl = import.meta.env.VITE_API_URL ?? '';
+                window.open(`${baseUrl}/api/asignaciones/acta-individual/${a.id}`);
+              }}
+            >
+              <FilePdfOutlined />
+            </button>
+          </Tooltip>
           <Tooltip title="Nueva asignación para este equipo">
             <button className="it-btn" style={{ padding: '4px 8px', fontSize: 12 }}
               onClick={() => onAsignar(a.equipoId)}>
@@ -508,6 +534,25 @@ function TabHistorial() {
       dataIndex: 'observaciones',
       render: (v?: string) => (
         <span style={{ fontSize: 12, color: '#64748b' }}>{v || '—'}</span>
+      ),
+    },
+    {
+      title: '',
+      key: 'acciones',
+      width: 90,
+      render: (_, a) => (
+        <Tooltip title="Ver Acta de Entrega firmable">
+          <button
+            className="it-btn"
+            style={{ padding: '4px 10px', fontSize: 12, color: '#2563eb', display: 'flex', alignItems: 'center', gap: 5 }}
+            onClick={() => {
+              const baseUrl = import.meta.env.VITE_API_URL ?? '';
+              window.open(`${baseUrl}/api/asignaciones/acta-individual/${a.id}`);
+            }}
+          >
+            <FilePdfOutlined /> Acta
+          </button>
+        </Tooltip>
       ),
     },
   ];

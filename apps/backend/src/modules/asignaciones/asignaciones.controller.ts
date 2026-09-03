@@ -28,6 +28,20 @@ export class AsignacionesController {
     res.end(buffer);
   }
 
+  /** GET /api/asignaciones/acta-individual/:id */
+  @Get('acta-individual/:id')
+  async actaIndividual(
+    @Param('id', ParseIntPipe) id: number,
+    @Res() res: Response,
+  ) {
+    const buffer = await this.service.generarActaPorAsignacion(id);
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `inline; filename="acta-asignacion-${id}.pdf"`,
+    });
+    res.end(buffer);
+  }
+
   /** GET /api/asignaciones/por-departamento */
   @Get('por-departamento')
   porDepartamento() {

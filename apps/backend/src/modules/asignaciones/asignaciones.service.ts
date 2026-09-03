@@ -257,4 +257,128 @@ export class AsignacionesService {
       ORDER BY e.gerencia, e.departamento
     `);
   }
+
+  async generarActaPorAsignacion(asignacionId: number): Promise<Buffer> {
+    const rows = await this.dataSource.query(
+      `SELECT a.id, a.fecha_inicio, a.fecha_fin, a.observaciones, a.creado_en,
+              c.id AS colaborador_id, c.nombre AS colab_nombre, c.dni AS colab_dni,
+              c.cargo AS colab_cargo, c.gerencia AS colab_gerencia, c.departamento AS colab_departamento, c.email AS colab_email,
+              e.id AS equipo_id, e.codigo AS equipo_codigo, e.serie AS equipo_serie,
+              e.hostname AS equipo_hostname, e.tipo AS equipo_tipo, e.marca AS equipo_marca,
+              e.estado AS equipo_estado, m.nombre AS modelo_nombre,
+              u.nombre AS asignado_por_nombre
+       FROM inventario_ti.asignaciones a
+       JOIN inventario_ti.colaboradores c ON c.id = a.colaborador_id
+       JOIN inventario_ti.equipos e ON e.id = a.equipo_id
+       LEFT JOIN inventario_ti.modelos m ON m.id = e.modelo_id
+       LEFT JOIN inventario_ti.usuarios u ON u.id = a.creado_por
+       WHERE a.id = @0`,
+      [asignacionId],
+    );
+
+    if (!rows || rows.length === 0) {
+      throw new NotFoundException(`Asignación #${asignacionId} no encontrada`);
+    }
+
+    const row = rows[0];
+    const fechaAsig = row.fecha_inicio ? new Date(row.fecha_inicio).toLocaleDateString('es-PE', { day: '2-digit', month: 'long', year: 'numeric' }) : new Date().toLocaleDateString('es-PE');
+    const codigoActa = `ACTA-ASIG-${String(row.id).padStart(6, '0')}`;
+
+    return new Promise((resolve, reject) => {
+      const doc = new PDFDocument({ size: 'A4', margin: 50 });
+      const chunks: Buffer[] = [];
+      doc.on('data', (c) => chunks.push(c));
+      doc.on('end', () => resolve(Buffer.concat(chunks)));
+      doc.on('error', reject);
+
+      // Cabecera Corporativa
+      doc.rect(50, 45, 495, 62).fill('#1e293b');
+      doc.fill('white').font('Helvetica-Bold').fontSize(14)
+         .text('MT INDUSTRIAL S.A.C', 50, 54, { align: 'center', width: 495 });
+      doc.font('Helvetica-Bold').fontSize(10)
+         .text('ACTA DE ENTREGA DE EQUIPO INFORMÁTICO', 50, 72, { align: 'center', width: 495 });
+      doc.fill('#94a3b8').font('Helvetica').fontSize(8)
+         .text(`Nro. Registro: ${codigoActa}   |   Fecha de Asignación: ${fechaAsig}`, 50, 88, { align: 'center', width: 495 });
+
+      // Sección 1: Datos del Colaborador
+      let y = 125;
+      doc.fill('#1e293b').font('Helvetica-Bold').fontSize(10).text('1. DATOS DEL COLABORADOR (RECEPTOR)', 50, y);
+      y += 14;
+      doc.fill('#e2e8f0').rect(50, y, 495, 1).fill();
+      y += 8;
+
+      doc.fill('#334155').font('Helvetica').fontSize(9);
+      doc.text(`Colaborador: `, 50, y, { continued: true }).font('Helvetica-Bold').text(row.colab_nombre ?? '—');
+      doc.font('Helvetica').text(`DNI / Doc: `, 320, y, { continued: true }).font('Helvetica-Bold').text(row.colab_dni ?? '—');
+      y += 16;
+      doc.font('Helvetica').text(`Cargo: `, 50, y, { continued: true }).font('Helvetica-Bold').text(row.colab_cargo ?? '—');
+      doc.font('Helvetica').text(`Correo: `, 320, y, { continued: true }).font('Helvetica-Bold').text(row.colab_email ?? '—');
+      y += 16;
+      doc.font('Helvetica').text(`Gerencia: `, 50, y, { continued: true }).font('Helvetica-Bold').text(row.colab_gerencia ?? '—');
+      doc.font('Helvetica').text(`Departamento: `, 320, y, { continued: true }).font('Helvetica-Bold').text(row.colab_departamento ?? '—');
+
+      // Sección 2: Detalle del Equipo Asignado
+      y += 26;
+      doc.fill('#1e293b').font('Helvetica-Bold').fontSize(10).text('2. DETALLE DEL EQUIPO ASIGNADO', 50, y);
+      y += 14;
+      doc.fill('#e2e8f0').rect(50, y, 495, 1).fill();
+      y += 8;
+
+      // Caja de detalles del equipo
+      doc.fill('#f8fafc').rect(50, y, 495, 90).fill();
+      doc.rect(50, y, 495, 90).stroke('#cbd5e1');
+
+      doc.fill('#334155').font('Helvetica').fontSize(9);
+      const ey = y + 10;
+      doc.text(`Tipo de Dispositivo: `, 65, ey, { continued: true }).font('Helvetica-Bold').text(row.equipo_tipo ?? '—');
+      doc.font('Helvetica').text(`Código MT: `, 310, ey, { continued: true }).font('Helvetica-Bold').text(row.equipo_codigo ?? '—');
+
+      doc.font('Helvetica').text(`Marca / Fabricante: `, 65, ey + 18, { continued: true }).font('Helvetica-Bold').text(row.equipo_marca ?? '—');
+      doc.font('Helvetica').text(`Modelo: `, 310, ey + 18, { continued: true }).font('Helvetica-Bold').text(row.modelo_nombre ?? '—');
+
+      doc.font('Helvetica').text(`Número de Serie: `, 65, ey + 36, { continued: true }).font('Helvetica-Bold').text(row.equipo_serie ?? '—');
+      doc.font('Helvetica').text(`Hostname / Red: `, 310, ey + 36, { continued: true }).font('Helvetica-Bold').text(row.equipo_hostname ?? '—');
+
+      doc.font('Helvetica').text(`Estado Físico: `, 65, ey + 54, { continued: true }).font('Helvetica-Bold').text(row.equipo_estado ?? 'OPERATIVO');
+      doc.font('Helvetica').text(`Fecha Entrega: `, 310, ey + 54, { continued: true }).font('Helvetica-Bold').text(fechaAsig);
+
+      // Sección 3: Observaciones y Condiciones
+      y += 110;
+      doc.fill('#1e293b').font('Helvetica-Bold').fontSize(10).text('3. OBSERVACIONES DE LA ENTREGA', 50, y);
+      y += 14;
+      doc.fill('#e2e8f0').rect(50, y, 495, 1).fill();
+      y += 8;
+      doc.fill('#475569').font('Helvetica').fontSize(9)
+         .text(row.observaciones && row.observaciones.trim().length > 0 ? row.observaciones : 'Equipo entregado en óptimas condiciones de funcionamiento físico y lógico con software corporativo estándar instalado.', 50, y, { width: 495 });
+
+      // Sección 4: Términos y Cláusula de Custodia
+      y += 45;
+      doc.fill('#1e293b').font('Helvetica-Bold').fontSize(10).text('4. COMPROMISO DE CUSTODIA Y RESPONSABILIDAD', 50, y);
+      y += 14;
+      doc.fill('#e2e8f0').rect(50, y, 495, 1).fill();
+      y += 8;
+      doc.fill('#475569').font('Helvetica').fontSize(8).text(
+        'El receptor declara recibir a entera satisfacción el equipo descrito para el estricto cumplimiento de sus labores profesionales. ' +
+        'Se compromete a velar por su buen estado, custodia y confidencialidad de la información contenida, no permitiendo el uso a terceros ni la alteración de su configuración. ' +
+        'En caso de robo, hurto o pérdida, deberá reportarse de inmediato al Área de TI y presentar la denuncia policial correspondiente. ' +
+        'Al término de la relación laboral o cuando la empresa lo requiera, el equipo deberá ser restituido en iguales condiciones operativas.',
+        50, y, { width: 495, align: 'justify', lineGap: 2 }
+      );
+
+      // Bloque de Firmas
+      y = 650;
+      doc.moveTo(70, y).lineTo(235, y).stroke('#1e293b');
+      doc.moveTo(310, y).lineTo(475, y).stroke('#1e293b');
+
+      doc.fill('#1e293b').font('Helvetica-Bold').fontSize(9)
+         .text(row.colab_nombre, 70, y + 5, { width: 165, align: 'center' });
+      doc.text(row.asignado_por_nombre ?? 'Área de TI / MT Industrial', 310, y + 5, { width: 165, align: 'center' });
+
+      doc.fill('#64748b').font('Helvetica').fontSize(8)
+         .text(`DNI: ${row.colab_dni ?? '—'}\nFirma del Colaborador (Receptor)`, 70, y + 18, { width: 165, align: 'center' })
+         .text(`Entregado por TI\nFirma y Sello`, 310, y + 18, { width: 165, align: 'center' });
+
+      doc.end();
+    });
+  }
 }
