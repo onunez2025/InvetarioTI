@@ -12,7 +12,7 @@ import { usuariosService } from '../services/usuarios.service';
 import { useAuthStore } from '../store/authStore';
 
 const { Option } = Select;
-const ROLES = ['ADMIN', 'GERENTE', 'TECNICO', 'VISUALIZADOR'] as const;
+const ROLES = ['ADMIN', 'TI_ADMIN', 'GERENTE', 'TECNICO', 'VISUALIZADOR'] as const;
 
 function formatDate(iso?: string) {
   if (!iso) return '—';

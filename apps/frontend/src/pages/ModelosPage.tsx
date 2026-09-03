@@ -55,7 +55,7 @@ export default function ModelosPage() {
     }
   })();
 
-  const puedeEditar = ['ADMIN', 'GERENTE', 'TECNICO'].includes(rolUsuario);
+  const puedeEditar = ['ADMIN', 'TI_ADMIN', 'TECNICO'].includes(rolUsuario);
 
   const [modelos, setModelos] = useState<Modelo[]>([]);
   const [total, setTotal]     = useState(0);

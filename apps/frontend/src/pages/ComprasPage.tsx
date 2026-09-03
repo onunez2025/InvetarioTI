@@ -75,7 +75,7 @@ export default function ComprasPage() {
   const [modelos, setModelos]         = useState<Modelo[]>([]);
   const [lineas, setLineas]           = useState<LineaForm[]>([{ cantidad: 1 }]);
 
-  const puedeCrear = ['ADMIN', 'GERENTE', 'TECNICO'].includes(rolUsuario);
+  const puedeCrear = ['ADMIN', 'TI_ADMIN', 'TECNICO'].includes(rolUsuario);
 
   const cargar = async (p = page) => {
     setCargando(true);

@@ -116,7 +116,7 @@ export default function EquiposPage() {
       message.error('No se pudo descargar la plantilla');
     }
   };
-  const puedeCrear    = ['ADMIN', 'GERENTE', 'TECNICO'].includes(rolUsuario);
+  const puedeCrear    = ['ADMIN', 'TI_ADMIN', 'TECNICO'].includes(rolUsuario);
 
   return (
     <div className="anim-fadeIn">

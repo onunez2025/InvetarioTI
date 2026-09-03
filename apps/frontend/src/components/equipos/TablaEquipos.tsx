@@ -91,8 +91,8 @@ export default function TablaEquipos({
   selectedKeys, onSelectChange,
 }: Props) {
   const navigate = useNavigate();
-  const puedeEditar   = ['ADMIN', 'GERENTE', 'TECNICO'].includes(rolUsuario);
-  const puedeEliminar = ['ADMIN', 'GERENTE'].includes(rolUsuario);
+  const puedeEditar   = ['ADMIN', 'TI_ADMIN', 'TECNICO'].includes(rolUsuario);
+  const puedeEliminar = ['ADMIN', 'TI_ADMIN'].includes(rolUsuario);
 
   const columnas: ColumnsType<Equipo> = [
     {

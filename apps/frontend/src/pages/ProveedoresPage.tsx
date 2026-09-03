@@ -32,7 +32,7 @@ export default function ProveedoresPage() {
     }
   })();
 
-  const puedeEditar = ['ADMIN', 'GERENTE', 'TECNICO'].includes(rolUsuario);
+  const puedeEditar = ['ADMIN', 'TI_ADMIN', 'TECNICO'].includes(rolUsuario);
 
   const [proveedores, setProveedores] = useState<Proveedor[]>([]);
   const [cargando, setCargando]       = useState(false);

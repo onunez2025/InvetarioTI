@@ -1,4 +1,4 @@
-export type RolUsuario = 'ADMIN' | 'GERENTE' | 'TECNICO' | 'VISUALIZADOR';
+export type RolUsuario = 'ADMIN' | 'TI_ADMIN' | 'GERENTE' | 'TECNICO' | 'VISUALIZADOR';
 
 export interface UsuarioItem {
   id: number;
@@ -28,6 +28,7 @@ export interface UpdateUsuarioPayload {
 
 export const ROL_LABELS: Record<RolUsuario, string> = {
   ADMIN:        'Administrador',
+  TI_ADMIN:     'TI Admin',
   GERENTE:      'Gerente',
   TECNICO:      'Técnico',
   VISUALIZADOR: 'Visualizador',
@@ -35,6 +36,7 @@ export const ROL_LABELS: Record<RolUsuario, string> = {
 
 export const ROL_COLORS: Record<RolUsuario, string> = {
   ADMIN:        '#7c3aed',
+  TI_ADMIN:     '#9333ea',
   GERENTE:      '#2563eb',
   TECNICO:      '#0891b2',
   VISUALIZADOR: '#64748b',
