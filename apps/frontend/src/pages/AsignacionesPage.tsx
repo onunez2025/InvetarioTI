@@ -8,7 +8,7 @@ import {
   PlusOutlined, EditOutlined, UserDeleteOutlined,
   SwapOutlined, CheckCircleOutlined, HistoryOutlined,
   TeamOutlined, LaptopOutlined, InboxOutlined, FilePdfOutlined,
-  ThunderboltOutlined,
+  ThunderboltOutlined, BankOutlined,
 } from '@ant-design/icons';
 import api from '../services/api';
 import dayjs from 'dayjs';
@@ -1120,6 +1120,63 @@ function TabPerifericosActivos({ colaboradores }: { colaboradores: Colaborador[]
 }
 
 /* ============================================================
+   TAB DEPARTAMENTOS
+   ============================================================ */
+function TabDepartamentos() {
+  const [data, setData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api
+      .get('/api/asignaciones/por-departamento')
+      .then((r) => setData(r.data))
+      .catch(() => message.error('Error al cargar departamentos'))
+      .finally(() => setLoading(false));
+  }, []);
+
+  return (
+    <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #e2e8f0', overflow: 'hidden' }}>
+      <Table
+        dataSource={data}
+        rowKey={(r) => `${r.gerencia}-${r.departamento}`}
+        loading={loading}
+        size="small"
+        columns={[
+          { title: 'Gerencia', dataIndex: 'gerencia', key: 'gerencia', width: 180 },
+          { title: 'Departamento', dataIndex: 'departamento', key: 'departamento' },
+          {
+            title: 'Equipos asignados',
+            dataIndex: 'equipos',
+            key: 'equipos',
+            width: 160,
+            align: 'right',
+            render: (v) => <span style={{ fontWeight: 600 }}>{v}</span>,
+          },
+          {
+            title: 'Colaboradores con equipo',
+            dataIndex: 'colaboradoresConEquipo',
+            key: 'colaboradoresConEquipo',
+            width: 200,
+            align: 'right',
+            render: (v) => <span style={{ color: '#2563eb', fontWeight: 600 }}>{v}</span>,
+          },
+          {
+            title: 'Total asignaciones',
+            dataIndex: 'totalAsignaciones',
+            key: 'totalAsignaciones',
+            width: 160,
+            align: 'right',
+            render: (v) => <span style={{ color: '#64748b' }}>{v}</span>,
+          },
+        ]}
+        pagination={{ pageSize: 20 }}
+        locale={{ emptyText: 'Sin datos por departamento' }}
+      />
+    </div>
+  );
+}
+
+/* ============================================================
    ASIGNACIONES PAGE
    ============================================================ */
 export default function AsignacionesPage() {
@@ -1285,6 +1342,11 @@ export default function AsignacionesPage() {
             key: 'perifericos',
             label: <span><InboxOutlined style={{ marginRight: 6 }} />Periféricos activos</span>,
             children: <TabPerifericosActivos colaboradores={colaboradores} />,
+          },
+          {
+            key: 'departamentos',
+            label: <span><BankOutlined style={{ marginRight: 6 }} />Departamentos</span>,
+            children: <TabDepartamentos />,
           },
         ]}
       />

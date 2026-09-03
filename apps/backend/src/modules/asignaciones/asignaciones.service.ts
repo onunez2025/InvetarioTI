@@ -243,4 +243,18 @@ export class AsignacionesService {
       doc.end();
     });
   }
+
+  async porDepartamento() {
+    return this.dataSource.query(`
+      SELECT e.gerencia, e.departamento,
+             COUNT(a.id) AS totalAsignaciones,
+             COUNT(DISTINCT a.colaborador_id) AS colaboradoresConEquipo,
+             COUNT(DISTINCT a.equipo_id) AS equipos
+      FROM inventario_ti.asignaciones a
+      JOIN inventario_ti.equipos e ON e.id = a.equipo_id
+      WHERE a.fecha_fin IS NULL
+      GROUP BY e.gerencia, e.departamento
+      ORDER BY e.gerencia, e.departamento
+    `);
+  }
 }

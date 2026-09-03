@@ -28,6 +28,12 @@ export class AsignacionesController {
     res.end(buffer);
   }
 
+  /** GET /api/asignaciones/por-departamento */
+  @Get('por-departamento')
+  porDepartamento() {
+    return this.service.porDepartamento();
+  }
+
   /** GET /api/asignaciones/activas */
   @Get('activas')
   findActivas() {
