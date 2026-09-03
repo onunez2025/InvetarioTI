@@ -1,7 +1,8 @@
 import {
   Controller, Get, Post, Patch, Delete,
-  Body, Param, Query, UseGuards, ParseIntPipe, Request,
+  Body, Param, Query, UseGuards, ParseIntPipe, Request, Res,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import { AsignacionesService } from './asignaciones.service';
 import { CreateAsignacionDto, DevolucionDto } from './dto/asignacion.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -10,6 +11,22 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 @UseGuards(JwtAuthGuard)
 export class AsignacionesController {
   constructor(private readonly service: AsignacionesService) {}
+
+  /** GET /api/asignaciones/acta/:colaboradorId */
+  @Get('acta/:colaboradorId')
+  async actaEntrega(
+    @Param('colaboradorId', ParseIntPipe) id: number,
+    @Request() req: any,
+    @Res() res: Response,
+  ) {
+    const buffer = await this.service.generarActa(id, req.user);
+    const fecha = new Date().toISOString().split('T')[0];
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `inline; filename="acta-entrega-${id}-${fecha}.pdf"`,
+    });
+    res.end(buffer);
+  }
 
   /** GET /api/asignaciones/activas */
   @Get('activas')

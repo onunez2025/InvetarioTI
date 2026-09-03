@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Tabs, Spin, Tag, Table, message, Popconfirm } from 'antd';
+import { Tabs, Spin, Tag, Table, message, Popconfirm, Button } from 'antd';
 import {
   ArrowLeftOutlined, UserOutlined, LaptopOutlined, HistoryOutlined,
+  FilePdfOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import type { ColumnsType } from 'antd/es/table';
@@ -343,6 +344,15 @@ export default function ColaboradorDetailPage() {
             </p>
           </div>
         </div>
+        <Button
+          icon={<FilePdfOutlined />}
+          onClick={() => {
+            const baseUrl = import.meta.env.VITE_API_URL ?? '';
+            window.open(`${baseUrl}/api/asignaciones/acta/${colaborador.id}`);
+          }}
+        >
+          Acta de entrega
+        </Button>
       </div>
 
       {/* Tabs */}

@@ -7,7 +7,7 @@ import {
 import {
   PlusOutlined, EditOutlined, UserDeleteOutlined,
   SwapOutlined, CheckCircleOutlined, HistoryOutlined,
-  TeamOutlined, LaptopOutlined, InboxOutlined,
+  TeamOutlined, LaptopOutlined, InboxOutlined, FilePdfOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import type { ColumnsType } from 'antd/es/table';
@@ -621,9 +621,22 @@ function TabColaboradores({
     {
       title: '',
       key: 'acciones',
-      width: 80,
+      width: 120,
       render: (_, c) => (
         <div style={{ display: 'flex', gap: 6 }}>
+          <Tooltip title="Acta de entrega PDF">
+            <button
+              className="it-btn"
+              style={{ padding: '4px 8px', fontSize: 12, color: '#2563eb' }}
+              onClick={(e) => {
+                e.stopPropagation();
+                const baseUrl = import.meta.env.VITE_API_URL ?? '';
+                window.open(`${baseUrl}/api/asignaciones/acta/${c.id}`);
+              }}
+            >
+              <FilePdfOutlined />
+            </button>
+          </Tooltip>
           <Tooltip title="Editar">
             <button className="it-btn" style={{ padding: '4px 8px', fontSize: 12 }}
               onClick={(e) => { e.stopPropagation(); setEditColab(c); setModalOpen(true); }}>
