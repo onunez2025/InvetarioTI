@@ -102,7 +102,7 @@ export class AsignacionesService {
   async generarActa(colaboradorId: number, usuarioTi?: { nombre?: string }): Promise<Buffer> {
     const [colab] = await this.dataSource.query(
       `
-      SELECT nombre, apellido, cargo, gerencia, departamento
+      SELECT nombre, cargo, gerencia, departamento
       FROM inventario_ti.colaboradores WHERE id=@0
     `,
       [colaboradorId],
@@ -160,7 +160,7 @@ export class AsignacionesService {
          .text('DATOS DEL COLABORADOR', 50, 125);
       doc.fill('#e2e8f0').rect(50, 137, 495, 1).fill();
       doc.fill('#334155').font('Helvetica').fontSize(10);
-      doc.text(`Nombre: ${colab.nombre} ${colab.apellido ?? ''}`, 50, 145);
+      doc.text(`Nombre: ${colab.nombre}`, 50, 145);
       doc.text(`Cargo: ${colab.cargo ?? '—'}`, 50, 160);
       doc.text(`Gerencia: ${colab.gerencia ?? '—'}   |   Departamento: ${colab.departamento ?? '—'}`, 50, 175);
 
@@ -234,7 +234,7 @@ export class AsignacionesService {
       doc.fill('#334155').font('Helvetica').fontSize(9);
       doc.moveTo(70, y).lineTo(230, y).stroke('#1e293b');
       doc.moveTo(330, y).lineTo(490, y).stroke('#1e293b');
-      doc.text(`${colab.nombre} ${colab.apellido ?? ''}`, 70, y + 4, { width: 160, align: 'center' });
+      doc.text(colab.nombre, 70, y + 4, { width: 160, align: 'center' });
       doc.text(usuarioTi?.nombre ?? 'Responsable TI', 330, y + 4, { width: 160, align: 'center' });
       doc.fill('#94a3b8').fontSize(8)
          .text('Firma colaborador', 70, y + 15, { width: 160, align: 'center' })
