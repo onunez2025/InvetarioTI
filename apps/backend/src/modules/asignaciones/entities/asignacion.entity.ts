@@ -41,6 +41,12 @@ export class Asignacion {
   @Column({ name: 'creado_por', nullable: true })
   creadoPorId: number;
 
+  @Column({ name: 'firma_digital', type: 'nvarchar', length: 'MAX', nullable: true })
+  firmaDigital: string | null;
+
+  @Column({ name: 'fecha_firma', type: 'datetime2', nullable: true })
+  fechaFirma: Date | null;
+
   @CreateDateColumn({ name: 'creado_en' })
   creadoEn: Date;
 }

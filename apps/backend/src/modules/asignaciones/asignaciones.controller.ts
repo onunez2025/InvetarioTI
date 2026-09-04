@@ -110,4 +110,13 @@ export class AsignacionesController {
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.service.remove(id);
   }
+
+  /** POST /api/asignaciones/:id/firmar */
+  @Post(':id/firmar')
+  registrarFirma(
+    @Param('id', ParseIntPipe) id: number,
+    @Body('firma') firma: string,
+  ) {
+    return this.service.registrarFirma(id, firma);
+  }
 }

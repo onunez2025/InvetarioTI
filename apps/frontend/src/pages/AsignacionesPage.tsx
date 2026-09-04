@@ -21,6 +21,7 @@ import { stockAsignacionesService } from '../services/stockAsignaciones.service'
 import type { StockAsignacion, CreateStockAsignacionPayload } from '../types/stock-asignacion.types';
 import { modelosService } from '../services/modelos.service';
 import type { Modelo } from '../types/modelo.types';
+import { SignaturePadModal } from '../components/asignaciones/SignaturePadModal';
 
 function fmtDate(s?: string | null) {
   if (!s) return '—';
@@ -46,7 +47,7 @@ function ColabAvatar({ nombre }: { nombre: string }) {
    ============================================================ */
 function ModalAsignacion({
   open, onClose, onSaved, colaboradores, equipoIdInicial,
-  equipos, cargandoEquipos,
+  equipos, cargandoEquipos, onIniciarFirma,
 }: {
   open: boolean;
   onClose: () => void;
@@ -55,6 +56,7 @@ function ModalAsignacion({
   equipoIdInicial?: number;
   equipos: Equipo[];
   cargandoEquipos: boolean;
+  onIniciarFirma?: (a: Asignacion) => void;
 }) {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
@@ -82,17 +84,29 @@ function ModalAsignacion({
       onClose();
 
       if (nueva?.id) {
-        Modal.confirm({
-          title: '📄 Acta de Entrega generada',
-          content: '¿Deseas abrir e imprimir el Acta de Entrega de este equipo para que sea firmada por el colaborador?',
-          okText: 'Abrir Acta de Entrega',
-          cancelText: 'Cerrar',
-          okButtonProps: { style: { background: '#2563eb', borderColor: '#2563eb' } },
-          onOk: () => {
-            const baseUrl = import.meta.env.VITE_API_URL ?? '';
-            window.open(`${baseUrl}/api/asignaciones/acta-individual/${nueva.id}`);
-          },
-        });
+        if (onIniciarFirma) {
+          Modal.confirm({
+            title: '✍️ ¿Deseas capturar la firma ahora?',
+            content: 'El colaborador puede firmar digitalmente en la pantalla táctil en este instante para estampar su firma en el Acta oficial.',
+            okText: '✍️ Firmar en Pantalla',
+            cancelText: 'Firmar después',
+            okButtonProps: { style: { background: '#2563eb', borderColor: '#2563eb' } },
+            onOk: () => {
+              onIniciarFirma(nueva);
+            },
+          });
+        } else {
+          Modal.confirm({
+            title: '📄 Acta de Entrega generada',
+            content: '¿Deseas abrir e imprimir el Acta de Entrega de este equipo?',
+            okText: 'Abrir Acta',
+            cancelText: 'Cerrar',
+            onOk: () => {
+              const baseUrl = import.meta.env.VITE_API_URL ?? '';
+              window.open(`${baseUrl}/api/asignaciones/acta-individual/${nueva.id}`);
+            },
+          });
+        }
       }
     } catch (e: any) {
       message.error(e.response?.data?.message ?? e.message ?? 'Error al asignar');
@@ -325,12 +339,13 @@ function ModalColaborador({
    TAB ASIGNACIONES ACTIVAS
    ============================================================ */
 function TabActivas({
-  activas, loading, onAsignar, onDevolver,
+  activas, loading, onAsignar, onDevolver, onFirmar,
 }: {
   activas: Asignacion[];
   loading: boolean;
   onAsignar: (equipoId?: number) => void;
   onDevolver: (a: Asignacion) => void;
+  onFirmar?: (a: Asignacion) => void;
 }) {
   const [busqueda, setBusqueda] = useState('');
 
@@ -398,6 +413,28 @@ function TabActivas({
         const area = a.equipo.gerencia || a.colaborador.gerencia;
         return area ? <Tag style={{ fontSize: 11 }}>{area}</Tag> : <span style={{ color: '#94a3b8' }}>—</span>;
       },
+    },
+    {
+      title: 'Firma',
+      key: 'firma',
+      width: 105,
+      render: (_, a) => a.firmaDigital ? (
+        <Tooltip title={a.fechaFirma ? `Firmado: ${dayjs(a.fechaFirma).format('DD/MM/YYYY HH:mm')}` : 'Firmado digitalmente'}>
+          <Tag color="success" icon={<CheckCircleOutlined />} style={{ fontSize: 11, cursor: 'default' }}>
+            Firmado
+          </Tag>
+        </Tooltip>
+      ) : (
+        <Tooltip title="Capturar firma digital táctil">
+          <button
+            className="it-btn"
+            style={{ padding: '3px 8px', fontSize: 11, color: '#7c3aed', display: 'flex', alignItems: 'center', gap: 4 }}
+            onClick={() => onFirmar?.(a)}
+          >
+            <EditOutlined /> Firmar
+          </button>
+        </Tooltip>
+      ),
     },
     {
       title: '',
@@ -471,7 +508,7 @@ function TabActivas({
 /* ============================================================
    TAB HISTORIAL
    ============================================================ */
-function TabHistorial() {
+function TabHistorial({ onFirmar }: { onFirmar?: (a: Asignacion) => void }) {
   const [data, setData] = useState<Asignacion[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -534,6 +571,28 @@ function TabHistorial() {
       dataIndex: 'observaciones',
       render: (v?: string) => (
         <span style={{ fontSize: 12, color: '#64748b' }}>{v || '—'}</span>
+      ),
+    },
+    {
+      title: 'Firma',
+      key: 'firma',
+      width: 105,
+      render: (_, a) => a.firmaDigital ? (
+        <Tooltip title={a.fechaFirma ? `Firmado: ${dayjs(a.fechaFirma).format('DD/MM/YYYY HH:mm')}` : 'Firmado digitalmente'}>
+          <Tag color="success" icon={<CheckCircleOutlined />} style={{ fontSize: 11, cursor: 'default' }}>
+            Firmado
+          </Tag>
+        </Tooltip>
+      ) : (
+        <Tooltip title="Capturar firma digital táctil">
+          <button
+            className="it-btn"
+            style={{ padding: '3px 8px', fontSize: 11, color: '#7c3aed', display: 'flex', alignItems: 'center', gap: 4 }}
+            onClick={() => onFirmar?.(a)}
+          >
+            <EditOutlined /> Firmar
+          </button>
+        </Tooltip>
       ),
     },
     {
@@ -1288,6 +1347,14 @@ export default function AsignacionesPage() {
     cargarColaboradores();
   }, [cargarActivas, cargarColaboradores]);
 
+  const [modalFirma, setModalFirma] = useState(false);
+  const [asigParaFirmar, setAsigParaFirmar] = useState<Asignacion | null>(null);
+
+  const handleIniciarFirma = (a: Asignacion) => {
+    setAsigParaFirmar(a);
+    setModalFirma(true);
+  };
+
   const handleAsignar = (equipoId?: number) => {
     setEquipoIdInicial(equipoId);
     setModalAsig(true);
@@ -1300,7 +1367,6 @@ export default function AsignacionesPage() {
 
   const onAsignado = () => {
     cargarActivas();
-    // Si estamos en historial, no hay que refrescar activas doble
   };
 
   return (
@@ -1362,13 +1428,14 @@ export default function AsignacionesPage() {
                 loading={loadingActivas}
                 onAsignar={handleAsignar}
                 onDevolver={handleDevolver}
+                onFirmar={handleIniciarFirma}
               />
             ),
           },
           {
             key: 'historial',
             label: <span><HistoryOutlined style={{ marginRight: 6 }} />Historial</span>,
-            children: <TabHistorial />,
+            children: <TabHistorial onFirmar={handleIniciarFirma} />,
           },
           {
             key: 'colaboradores',
@@ -1416,12 +1483,31 @@ export default function AsignacionesPage() {
         equipoIdInicial={equipoIdInicial}
         equipos={equipos}
         cargandoEquipos={cargandoEquipos}
+        onIniciarFirma={handleIniciarFirma}
       />
       <ModalDevolucion
         open={modalDevolucion}
         asignacion={asignacionDevolver}
         onClose={() => setModalDevolucion(false)}
         onSaved={cargarActivas}
+      />
+      <SignaturePadModal
+        open={modalFirma}
+        asignacionId={asigParaFirmar?.id ?? null}
+        colaboradorNombre={asigParaFirmar?.colaborador?.nombre}
+        colaboradorDni={asigParaFirmar?.colaborador?.dni}
+        equipoDescripcion={
+          asigParaFirmar?.equipo
+            ? `${asigParaFirmar.equipo.tipo ?? 'Equipo'} ${asigParaFirmar.equipo.marca ?? ''} ${asigParaFirmar.equipo.nombre ?? ''} · Serie: ${asigParaFirmar.equipo.serie ?? 'S/N'}`
+            : undefined
+        }
+        onClose={() => {
+          setModalFirma(false);
+          setAsigParaFirmar(null);
+        }}
+        onSaved={() => {
+          cargarActivas();
+        }}
       />
     </div>
   );

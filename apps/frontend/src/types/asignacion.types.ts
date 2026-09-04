@@ -31,6 +31,8 @@ export interface Asignacion {
   fechaInicio: string;
   fechaFin: string | null;   // null = activa
   observaciones?: string;
+  firmaDigital?: string | null;
+  fechaFirma?: string | null;
   creadoEn: string;
 }
 

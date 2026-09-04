@@ -72,4 +72,8 @@ export const asignacionesService = {
   async remove(id: number): Promise<void> {
     await api.delete(`/api/asignaciones/${id}`);
   },
+  async registrarFirma(id: number, firma: string): Promise<Asignacion> {
+    const { data } = await api.post<Asignacion>(`/api/asignaciones/${id}/firmar`, { firma });
+    return data;
+  },
 };

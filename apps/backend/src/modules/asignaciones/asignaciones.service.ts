@@ -261,6 +261,7 @@ export class AsignacionesService {
   async generarActaPorAsignacion(asignacionId: number): Promise<Buffer> {
     const rows = await this.dataSource.query(
       `SELECT a.id, a.fecha_inicio, a.fecha_fin, a.observaciones, a.creado_en,
+              a.firma_digital, a.fecha_firma,
               c.id AS colaborador_id, c.nombre AS colab_nombre, c.dni AS colab_dni,
               c.cargo AS colab_cargo, c.gerencia AS colab_gerencia, c.departamento AS colab_departamento, c.email AS colab_email,
               e.id AS equipo_id, e.codigo AS equipo_codigo, e.serie AS equipo_serie,
@@ -283,6 +284,16 @@ export class AsignacionesService {
     const row = rows[0];
     const fechaAsig = row.fecha_inicio ? new Date(row.fecha_inicio).toLocaleDateString('es-PE', { day: '2-digit', month: 'long', year: 'numeric' }) : new Date().toLocaleDateString('es-PE');
     const codigoActa = `ACTA-ASIG-${String(row.id).padStart(6, '0')}`;
+
+    let firmaBuffer: Buffer | null = null;
+    if (row.firma_digital) {
+      try {
+        const base64Data = row.firma_digital.replace(/^data:image\/\w+;base64,/, '');
+        firmaBuffer = Buffer.from(base64Data, 'base64');
+      } catch {
+        firmaBuffer = null;
+      }
+    }
 
     return new Promise((resolve, reject) => {
       const doc = new PDFDocument({ size: 'A4', margin: 50 });
@@ -367,6 +378,16 @@ export class AsignacionesService {
 
       // Bloque de Firmas
       y = 650;
+
+      // Si existe firma digital del colaborador, incrustarla sobre la línea
+      if (firmaBuffer) {
+        try {
+          doc.image(firmaBuffer, 75, y - 48, { fit: [155, 45], align: 'center' });
+        } catch {
+          // Si el buffer no es válido, se omite imagen silenciosamente
+        }
+      }
+
       doc.moveTo(70, y).lineTo(235, y).stroke('#1e293b');
       doc.moveTo(310, y).lineTo(475, y).stroke('#1e293b');
 
@@ -374,11 +395,23 @@ export class AsignacionesService {
          .text(row.colab_nombre, 70, y + 5, { width: 165, align: 'center' });
       doc.text(row.asignado_por_nombre ?? 'Área de TI / MT Industrial', 310, y + 5, { width: 165, align: 'center' });
 
+      const firmaSubtexto = row.fecha_firma
+        ? `Firmado digitalmente: ${new Date(row.fecha_firma).toLocaleDateString('es-PE')} ${new Date(row.fecha_firma).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' })}`
+        : 'Firma del Colaborador (Receptor)';
+
       doc.fill('#64748b').font('Helvetica').fontSize(8)
-         .text(`DNI: ${row.colab_dni ?? '—'}\nFirma del Colaborador (Receptor)`, 70, y + 18, { width: 165, align: 'center' })
+         .text(`DNI: ${row.colab_dni ?? '—'}\n${firmaSubtexto}`, 70, y + 18, { width: 165, align: 'center' })
          .text(`Entregado por TI\nFirma y Sello`, 310, y + 18, { width: 165, align: 'center' });
 
       doc.end();
     });
+  }
+
+  async registrarFirma(id: number, firmaBase64: string) {
+    const asignacion = await this.repo.findOne({ where: { id } });
+    if (!asignacion) throw new NotFoundException(`Asignación #${id} no encontrada`);
+    asignacion.firmaDigital = firmaBase64;
+    asignacion.fechaFirma = new Date();
+    return this.repo.save(asignacion);
   }
 }
